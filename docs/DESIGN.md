@@ -265,7 +265,7 @@ States: session missing (show sign-in steps with pairing code), Developer Mode o
 
 ## 6. Copy rules
 
-- Product screens say "keep your shares", never "keep your tokens". When a conversion changes the token (Ondo to bStock), Review states it: "Your NVDAon becomes NVDAB. Same number of shares, different issuer."
+- Product screens say "keep your shares", never "keep your tokens". When a conversion changes the token (Ondo to bStock), Review states it with the exact cost: "Your NVDAon becomes NVDAB. 0.1000 shares become 0.0998 shares (0.2% conversion cost)." Borrowing directly against a bStock keeps the share count identical.
 - The debt asset is always named as it is: "You owe 200.41 USD1". If a final swap delivers USDT, Review shows both lines: "You get 200.00 USDT" and "You owe USD1".
 - The tagline "Borrow against your stocks. Keep them." appears only on the landing page, next to the honest-part section with the risk explanation.
 - Sentence case everywhere except status pills.
