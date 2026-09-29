@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "error": {
+    "code": 351805,
+    "name": "SERVICE_ERROR",
+    "message": "Transaction simulation failed: Insufficient balance. Please cancel the transaction, check your balance, and try again."
+  }
+}

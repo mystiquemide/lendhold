@@ -1,0 +1,9 @@
+{
+ "success": true,
+ "data": {
+  "orderId": "order-xxx",
+  "status": "PENDING_CONFIRMATION",
+  "txHash": null,
+  "message": "Please confirm in the Binance App"
+ }
+}

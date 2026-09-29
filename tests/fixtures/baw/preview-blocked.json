@@ -1,0 +1,13 @@
+{
+ "success": false,
+ "error": {
+  "code": 351803,
+  "name": "AGENT_DEV_MODE_RISK_BLOCKED",
+  "message": "High risk transaction",
+  "data": {
+   "blockLevel": "Block",
+   "blockReason": "High risk transaction",
+   "risks": {}
+  }
+ }
+}

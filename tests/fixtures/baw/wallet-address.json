@@ -1,0 +1,42 @@
+{
+  "success": true,
+  "data": {
+    "addresses": [
+      {
+        "binanceChainId": "CT_501",
+        "chainName": "Solana",
+        "address": "9VGQy7jbu6nQMitKHSfwRcJkENjB8Ez1TCX8AD4FNNcR"
+      },
+      {
+        "binanceChainId": "1",
+        "chainName": "Ethereum",
+        "address": "0x40F93Eca205086b4ccbF722C871c2815c266550a"
+      },
+      {
+        "binanceChainId": "137",
+        "chainName": "Polygon",
+        "address": "0x40F93Eca205086b4ccbF722C871c2815c266550a"
+      },
+      {
+        "binanceChainId": "42161",
+        "chainName": "Arbitrum",
+        "address": "0x40F93Eca205086b4ccbF722C871c2815c266550a"
+      },
+      {
+        "binanceChainId": "4663",
+        "chainName": "Robinhood",
+        "address": "0x40F93Eca205086b4ccbF722C871c2815c266550a"
+      },
+      {
+        "binanceChainId": "56",
+        "chainName": "BSC",
+        "address": "0x40F93Eca205086b4ccbF722C871c2815c266550a"
+      },
+      {
+        "binanceChainId": "8453",
+        "chainName": "Base",
+        "address": "0x40F93Eca205086b4ccbF722C871c2815c266550a"
+      }
+    ]
+  }
+}

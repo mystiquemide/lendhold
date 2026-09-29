@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "data": {
+    "maxSigninDuration": "48h",
+    "dailyLimit": 50000,
+    "abnormalTxnHandling": "AutoReject",
+    "inactiveSignoutDuration": "48h",
+    "tradeAllTokens": false,
+    "predictionEnabled": false,
+    "predictionDailyLimit": 5000,
+    "predictionQuotaUsed": 0,
+    "predictionQuotaLeft": 5000,
+    "predictionQuotaDate": "2026-09-29",
+    "defiDailyLimit": 5000,
+    "defiQuotaUsed": 0,
+    "defiQuotaLeft": 5000,
+    "defiQuotaDate": "2026-09-29",
+    "x402DailyLimit": 20,
+    "x402QuotaUsed": 0,
+    "x402QuotaLeft": 20,
+    "x402QuotaDate": "2026-09-29",
+    "developerModeQuotaUsed": 0,
+    "developerModeQuotaDate": "2026-09-29",
+    "quotaUsed": 0,
+    "quotaLeft": 50000,
+    "quotaDate": "2026-09-29",
+    "devMode": {
+      "enabled": true,
+      "expiresAt": "2026-10-06T23:22:14+00:00",
+      "dailyLimit": 1000,
+      "balanceExceeded": false
+    },
+    "sessionExpireTime": "2026-10-01T23:24:40+00:00",
+    "signInMaxTime": "2026-10-06T23:21:50+00:00",
+    "inactiveSignOutTime": "2026-10-01T23:24:40+00:00"
+  }
+}

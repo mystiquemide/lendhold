@@ -1,0 +1,8 @@
+{
+  "success": false,
+  "error": {
+    "code": 6,
+    "name": "SERVICE_ERROR",
+    "message": "This token pair is not available for trading at this time. Please choose a different pair and retry."
+  }
+}

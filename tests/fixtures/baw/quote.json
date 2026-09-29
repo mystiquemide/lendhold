@@ -1,0 +1,10 @@
+{
+  "success": true,
+  "data": {
+    "fromCoinSymbol": "USDT",
+    "fromCoinAmount": "1",
+    "toCoinSymbol": "USD1",
+    "toCoinAmount": "1.000713357399357558",
+    "slippage": 0.005
+  }
+}
