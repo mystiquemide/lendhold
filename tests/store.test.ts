@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type Database from "better-sqlite3";
+import Database from "better-sqlite3";
 import {
   createRun,
   getRun,
@@ -71,6 +71,33 @@ describe("run store", () => {
     const c = createRun({ path: "browser" }, db);
     expect(listRuns(10, db).map((r) => r.id)).toEqual([c.id, b.id, a.id]);
     expect(listRuns(2, db)).toHaveLength(2);
+  });
+
+  it("accepts the skill path and rejects unknown paths", () => {
+    expect(createRun({ path: "skill", address: "0xabc" }, db).path).toBe("skill");
+    expect(() => db.prepare("INSERT INTO runs (id, path, status) VALUES ('y','other','planned')").run()).toThrow();
+  });
+
+  it("rebuilds a runs table created before the skill path and keeps its rows", () => {
+    const legacy = join(dir, "legacy.db");
+    const old = new Database(legacy);
+    old.exec(`CREATE TABLE runs (
+      id TEXT PRIMARY KEY,
+      path TEXT CHECK(path IN ('browser','agent')),
+      address TEXT, action TEXT, token TEXT, market_id TEXT,
+      plan_json TEXT, status TEXT CHECK(status IN ('planned','running','done','failed','stopped')),
+      created_at INTEGER, updated_at INTEGER
+    );
+    INSERT INTO runs VALUES ('r1','agent','0xabc','borrow','0xtok','0xmkt','{}','done',1,2);`);
+    old.close();
+    const migrated = openDb(legacy);
+    expect(getRun("r1", migrated)).toMatchObject({ path: "agent", address: "0xabc", status: "done", createdAt: 1, updatedAt: 2 });
+    expect(createRun({ path: "skill" }, migrated).path).toBe("skill");
+    migrated.close();
+    // opening again is a no-op
+    const again = openDb(legacy);
+    expect(listRuns(10, again)).toHaveLength(2);
+    again.close();
   });
 
   it("rejects invalid status values", () => {

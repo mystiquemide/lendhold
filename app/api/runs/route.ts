@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 const createBody = z.object({
   planId: z.uuid(),
-  path: z.enum(["browser", "agent"]).default("browser"),
+  path: z.enum(["browser", "agent", "skill"]).default("browser"),
 });
 
 const listQuery = z.object({

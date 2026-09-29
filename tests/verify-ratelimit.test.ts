@@ -35,6 +35,16 @@ describe("verifyTx", () => {
   });
 });
 
+describe("verifyTx with a partial expectation", () => {
+  it("skips the target and function checks when they are not given, but still checks sender and success", () => {
+    const anywhere = { ...good, to: "0x9999999999999999999999999999999999999999", input: "0xdeadbeef" };
+    expect(verifyTx(anywhere, { from: expected.from })).toEqual({ ok: true });
+    expect(verifyTx({ ...anywhere, status: "reverted" }, { from: expected.from })).toMatchObject({ code: "TX_REVERTED" });
+    expect(verifyTx({ ...anywhere, from: "0x2222222222222222222222222222222222222222" }, { from: expected.from })).toMatchObject({ code: "TX_WRONG_SENDER" });
+    expect(verifyTx({ ...anywhere, to: null }, { from: expected.from })).toEqual({ ok: true });
+  });
+});
+
 describe("RateLimiter", () => {
   it("allows the capacity, then blocks, then refills", () => {
     let now = 0;

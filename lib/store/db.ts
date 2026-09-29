@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
-export type RunPath = "browser" | "agent";
+export type RunPath = "browser" | "agent" | "skill";
 export type RunStatus = "planned" | "running" | "done" | "failed" | "stopped";
 export type StepStatus =
   | "pending"
@@ -83,7 +83,7 @@ export interface UpsertStepInput {
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS runs (
   id TEXT PRIMARY KEY,
-  path TEXT CHECK(path IN ('browser','agent')),
+  path TEXT CHECK(path IN ('browser','agent','skill')),
   address TEXT, action TEXT, token TEXT, market_id TEXT,
   plan_json TEXT, status TEXT CHECK(status IN ('planned','running','done','failed','stopped')),
   created_at INTEGER, updated_at INTEGER
@@ -116,8 +116,29 @@ export function openDb(path: string): Database.Database {
   }
   const db = new Database(path);
   db.pragma("journal_mode = WAL");
+  migrateRunsPathCheck(db);
   db.exec(SCHEMA);
   return db;
+}
+
+/** SQLite cannot alter a CHECK constraint, so databases created before the 'skill' path get their runs table rebuilt. */
+function migrateRunsPathCheck(db: Database.Database): void {
+  const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'runs'").get() as
+    | { sql: string }
+    | undefined;
+  if (!row || row.sql.includes("'skill'")) return;
+  db.transaction(() => {
+    db.exec("ALTER TABLE runs RENAME TO runs_old");
+    db.exec(`CREATE TABLE runs (
+  id TEXT PRIMARY KEY,
+  path TEXT CHECK(path IN ('browser','agent','skill')),
+  address TEXT, action TEXT, token TEXT, market_id TEXT,
+  plan_json TEXT, status TEXT CHECK(status IN ('planned','running','done','failed','stopped')),
+  created_at INTEGER, updated_at INTEGER
+)`);
+    db.exec("INSERT INTO runs SELECT id, path, address, action, token, market_id, plan_json, status, created_at, updated_at FROM runs_old");
+    db.exec("DROP TABLE runs_old");
+  })();
 }
 
 let shared: Database.Database | undefined;

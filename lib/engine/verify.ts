@@ -1,7 +1,9 @@
 export interface ExpectedTx {
   from: string;
-  to: string;
-  selector: string;
+  /** Omit to skip the target check (swaps routed by the wallet itself). */
+  to?: string;
+  /** Omit to skip the function check. */
+  selector?: string;
 }
 
 export interface ObservedTx {
@@ -21,10 +23,10 @@ export function verifyTx(observed: ObservedTx, expected: ExpectedTx): VerifyResu
   if (observed.from.toLowerCase() !== expected.from.toLowerCase()) {
     return { ok: false, code: "TX_WRONG_SENDER", message: "That transaction was not sent by the run's wallet" };
   }
-  if (!observed.to || observed.to.toLowerCase() !== expected.to.toLowerCase()) {
+  if (expected.to !== undefined && (!observed.to || observed.to.toLowerCase() !== expected.to.toLowerCase())) {
     return { ok: false, code: "TX_WRONG_TARGET", message: "That transaction went to a different contract than planned" };
   }
-  if (!observed.input.toLowerCase().startsWith(expected.selector.toLowerCase())) {
+  if (expected.selector !== undefined && !observed.input.toLowerCase().startsWith(expected.selector.toLowerCase())) {
     return { ok: false, code: "TX_WRONG_CALL", message: "That transaction called a different function than planned" };
   }
   return { ok: true };

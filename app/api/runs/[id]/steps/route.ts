@@ -27,9 +27,11 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
 
   if (existing.status === "confirmed") return json({ run });
 
-  let expectedTo: string;
-  let selector: string;
-  if (step.kind === "swap") {
+  let expectedTo: string | undefined;
+  let selector: string | undefined;
+  if (step.kind === "swap" && run.path === "skill") {
+    // The user's own Agentic Wallet routes the swap, so only the sender and success can be checked.
+  } else if (step.kind === "swap") {
     const built = getBuiltTx(plan.id, idx);
     if (!built) {
       throw new AppError("SWAP_NOT_BUILT", "Build the swap through /api/swap/build first", 409);
