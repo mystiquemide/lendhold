@@ -94,6 +94,20 @@ CREATE TABLE IF NOT EXISTS run_steps (
   sim_json TEXT, tx_hash TEXT, order_id TEXT, error TEXT, updated_at INTEGER,
   PRIMARY KEY(run_id, idx)
 );
+CREATE TABLE IF NOT EXISTS plans (
+  id TEXT PRIMARY KEY,
+  address TEXT NOT NULL,
+  json TEXT NOT NULL,
+  created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS built_txs (
+  plan_id TEXT NOT NULL,
+  idx INTEGER NOT NULL,
+  to_address TEXT NOT NULL,
+  selector TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY(plan_id, idx)
+);
 `;
 
 export function openDb(path: string): Database.Database {
@@ -258,4 +272,69 @@ export function upsertStep(
     .prepare("SELECT * FROM run_steps WHERE run_id = ? AND idx = ?")
     .get(input.runId, input.idx) as StepRow;
   return toStep(row);
+}
+
+export interface PlanRow {
+  id: string;
+  address: string;
+  json: string;
+  createdAt: number;
+}
+
+export function savePlan(
+  plan: { id: string; address: string; json: string },
+  db: Database.Database = getDb(),
+): PlanRow {
+  const now = Date.now();
+  db.prepare("INSERT OR REPLACE INTO plans (id, address, json, created_at) VALUES (?, ?, ?, ?)").run(
+    plan.id,
+    plan.address,
+    plan.json,
+    now,
+  );
+  return { ...plan, createdAt: now };
+}
+
+export function getPlanRow(id: string, db: Database.Database = getDb()): PlanRow | undefined {
+  const row = db.prepare("SELECT * FROM plans WHERE id = ?").get(id) as
+    | { id: string; address: string; json: string; created_at: number }
+    | undefined;
+  return row ? { id: row.id, address: row.address, json: row.json, createdAt: row.created_at } : undefined;
+}
+
+export interface BuiltTx {
+  planId: string;
+  idx: number;
+  to: string;
+  selector: string;
+}
+
+export function saveBuiltTx(tx: BuiltTx, db: Database.Database = getDb()): void {
+  db.prepare(
+    "INSERT OR REPLACE INTO built_txs (plan_id, idx, to_address, selector, created_at) VALUES (?, ?, ?, ?, ?)",
+  ).run(tx.planId, tx.idx, tx.to.toLowerCase(), tx.selector.toLowerCase(), Date.now());
+}
+
+export function getBuiltTx(
+  planId: string,
+  idx: number,
+  db: Database.Database = getDb(),
+): BuiltTx | undefined {
+  const row = db.prepare("SELECT * FROM built_txs WHERE plan_id = ? AND idx = ?").get(planId, idx) as
+    | { plan_id: string; idx: number; to_address: string; selector: string }
+    | undefined;
+  return row
+    ? { planId: row.plan_id, idx: row.idx, to: row.to_address, selector: row.selector }
+    : undefined;
+}
+
+export function listRunsByAddress(
+  address: string,
+  limit = 50,
+  db: Database.Database = getDb(),
+): Run[] {
+  const rows = db
+    .prepare("SELECT * FROM runs WHERE lower(address) = lower(?) ORDER BY created_at DESC, rowid DESC LIMIT ?")
+    .all(address, limit) as RunRow[];
+  return rows.map(toRun);
 }
