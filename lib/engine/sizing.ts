@@ -89,18 +89,21 @@ export function sessionNotices(session: SizingSession): Notice[] {
   return notices;
 }
 
+export function bufferBps(session: SizingSession): bigint {
+  return session.marketOpen && isTrading(session.assetReasonCode) ? BUFFER_OPEN : BUFFER_CLOSED;
+}
+
 export function computeSizing(input: SizingInput): Sizing {
-  const openAndTrading = input.session.marketOpen && isTrading(input.session.assetReasonCode);
-  const bufferBps = openAndTrading ? BUFFER_OPEN : BUFFER_CLOSED;
+  const buffer = bufferBps(input.session);
   const value = collateralValueInLoan(input);
   const maxTotal = (value * input.lltv) / WAD;
-  const safeTotal = (value * input.lltv * bufferBps) / (WAD * BPS);
+  const safeTotal = (value * input.lltv * buffer) / (WAD * BPS);
   return {
     collateralValueLoan: value,
     maxBorrowTotal: maxTotal,
     maxBorrowNew: min(floor0(maxTotal - input.existingDebt), input.availableLiquidity),
     safeBorrowNew: min(floor0(safeTotal - input.existingDebt), input.availableLiquidity),
-    buffer: Number(bufferBps) / Number(BPS),
+    buffer: Number(buffer) / Number(BPS),
     notices: sessionNotices(input.session),
   };
 }

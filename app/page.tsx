@@ -1,3 +1,4 @@
+import { Hero } from "@/components/landing/Hero";
 import { NavBar } from "@/components/ui/NavBar";
 
 const links = [
@@ -8,5 +9,12 @@ const links = [
 ];
 
 export default function Home() {
-  return <NavBar links={links} cta={{ label: "Open app", href: "/app" }} />;
+  return (
+    <>
+      <NavBar links={links} cta={{ label: "Open app", href: "/app" }} />
+      <main>
+        <Hero />
+      </main>
+    </>
+  );
 }
