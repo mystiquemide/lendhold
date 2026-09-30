@@ -29,7 +29,7 @@
 | `--watch` / `--watch-tint` | `#9a5b00` / `#fff3d6` | WATCH badge, above-safe notice | 4.9:1 on tint |
 | `--risk` / `--risk-tint` | `#d1193e` / `#fdecee` | AT RISK badge, errors, failed step | 4.7:1 on tint |
 
-Rules: violet appears only on things you can press or that are active. Health colors appear only on health, held counts and step results. No gradients except the photo scrim `linear-gradient(180deg, #0000 30%, #00000080)`. No other hues.
+Rules: violet appears only on things you can press or that are active, and on the logo coin. Health colors appear only on health, held counts and step results. No gradients except the photo scrim `linear-gradient(180deg, #0000 30%, #00000080)`. No other hues.
 
 ### Type
 
@@ -68,10 +68,10 @@ No bold anywhere. Weight 500 only. Apply `font-variant-numeric: tabular-nums` to
 
 ## 3. Brand assets
 
-- Mark: two vertical rounded bars side by side. Left bar tall (the stock you keep), right bar shorter and offset right (the cash you draw). Solid `--ink` on light backgrounds.
+- Mark: the cradle. A rounded lowercase "l" (5/32 stroke, round caps) whose foot curves into a base, holding a solid coin that rests in the corner. The coin is the share you keep. Stroke in `--ink` (white on dark), coin in `--action`. This is the only place violet appears outside an action.
 - Wordmark: lowercase `lendhold`, Instrument Sans 500, letter-spacing -0.02em.
-- Lockup: mark left, wordmark right, gap equal to the right bar's width.
-- Favicon: mark only, 32px and 16px, bars at least 3px wide at 16px.
+- Lockup: mark left, wordmark right, gap 8px at 24px type.
+- Favicon: mark only, drawn on a 32 grid, legible at 16px.
 - Tagline: "Borrow against your stocks. Keep them."
 - Sponsor line (footer only, text): "Built for BNB Hack: Tokenized Stocks Edition". No sponsor logos or seals unless official assets are supplied.
 
@@ -79,7 +79,7 @@ No bold anywhere. Weight 500 only. Apply `font-variant-numeric: tabular-nums` to
 
 | Component | Spec |
 |---|---|
-| NavBar | Floating pill, 12px from the top, 72px tall, max 1224px, fill `#f6f6f6e6` with `backdrop-filter: blur(12px)`. Logo left. Links center: How it works, Proof, For agents, FAQ (16px ink). Right: primary pill "Open app". Mobile: logo and a menu button opening a full-width white sheet with the same links. |
+| NavBar | Floating glass bar, sticky, 12px from the top and 12px from the sides, 60px tall, max 1224px, radius 30px, padding 24px left and 8px right, `backdrop-filter: blur(12px)`. Fill at 992px and above: `linear-gradient(#0000000d, #0000000d), linear-gradient(#ffffffde, #ffffff80), #0000000d`. Below 992px: `linear-gradient(#f0f0f0cc, #f0f0f066), #0000000d`. The hero slides under it. Logo left. Links centered on the bar (How it works, Proof, For agents, FAQ): 14px, weight 500, padding 16x24, pill radius, `--body` text, 4px apart. Hover: white pill with ink text. Press: scale 0.95. Right: primary pill "Open app" (48px tall). Collapses at 991px: logo and a 44px menu button (Menu and X icons, 24px). The menu is a fixed panel 84px from the top, 12px from the sides, radius 30px, padding 12px, blur 12px, fill `linear-gradient(#f0f0f0cc, #ffffff), #0000000d`. Its links are 16px, padding 20x24, pill radius, white hover, followed by a full-width primary "Open app" pill. Escape, a link click, the CTA and widening past 992px close it. |
 | AppBar | Same pill, 64px. Logo left. Right: WalletChip, or primary pill "Connect wallet". |
 | PrimaryPill | `--action` fill, `--on-action` text 17px 500, padding 16x28, radius 99. App: full width, 56px tall. Disabled: `#e7e7e7` fill, `#6d6d6d` text. Loading: label kept, 16px spinner on the right. |
 | SecondaryPill | White fill on canvas surfaces, canvas fill on white surfaces. Ink text, same size. Never an outline. |

@@ -46,6 +46,20 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+.nav-glass {
+  background: linear-gradient(#f0f0f0cc, #f0f0f066), #0000000d;
+}
+
+@media (min-width: 992px) {
+  .nav-glass {
+    background: linear-gradient(#0000000d, #0000000d), linear-gradient(#ffffffde, #ffffff80), #0000000d;
+  }
+}
+
+.nav-panel {
+  background: linear-gradient(#f0f0f0cc, #ffffff), #0000000d;
+}
+
 @utility num {
   font-variant-numeric: tabular-nums;
 }

@@ -9,9 +9,15 @@ export interface LogoProps {
 
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className={className}>
-      <rect x="4" y="2" width="6" height="20" rx="3" />
-      <rect x="14" y="9" width="6" height="13" rx="3" />
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={className}>
+      <path
+        d="M7.5 4.5V20.5A7 7 0 0 0 14.5 27.5H26"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="5"
+        strokeLinecap="round"
+      />
+      <circle cx="20" cy="17.5" r="5" className="fill-action" />
     </svg>
   );
 }
