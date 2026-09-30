@@ -63,7 +63,11 @@ function makeRun(p: Plan = plan, path: "agent" | "browser" = "agent") {
 }
 
 /** A fake agent wallet plus chain whose state changes as transactions "land". */
-function world(over: { preview?: (step: Step) => unknown; orderStatuses?: string[]; allowance?: bigint } = {}) {
+const SWAP_HASH = `0x${"cd".repeat(32)}`;
+const ROUTER = "0xb300000b72deaeb607a12d5f54773d1c19c7028d";
+const OTHER = "0x00000000000000000000000000000000000000aa";
+
+function world(over: { preview?: (step: Step) => unknown; orderStatuses?: string[]; allowance?: bigint; swapSender?: string } = {}) {
   const state = { allowance: over.allowance ?? 0n, collateral: 0n, borrowShares: 0n, wallet: 2n * E18 };
   const log: string[] = [];
   const byHash = new Map<string, Step>();
@@ -90,13 +94,15 @@ function world(over: { preview?: (step: Step) => unknown; orderStatuses?: string
       return { status: "BROADCASTED", txHash: hash, orderId: `o${n}`, message: null };
     }),
     marketOrderSwap: vi.fn(async () => { log.push("swap"); return { orderId: "ord-1" }; }),
-    marketOrderList: vi.fn(async () => ({ orderId: "ord-1", status: orders.length > 1 ? orders.shift()! : orders[0], txHash: `0x${"cd".repeat(32)}` })),
+    marketOrderList: vi.fn(async (): Promise<unknown> => ({ orderId: "ord-1", status: orders.length > 1 ? orders.shift()! : orders[0], txHash: SWAP_HASH })),
+    recentOrders: vi.fn(async (): Promise<unknown[]> => []),
   };
   const chain: ChainReader = {
     allowance: async () => state.allowance,
     balance: async () => state.wallet,
     position: async () => ({ collateral: state.collateral, borrowShares: state.borrowShares }),
     waitForTx: async (hash) => {
+      if (hash === SWAP_HASH) return { status: "success", from: over.swapSender ?? AGENT, to: ROUTER, input: "0x810c705b" };
       const step = byHash.get(hash);
       return step ? { status: "success", from: AGENT, to: step.to!, input: step.data! } : null;
     },
@@ -107,7 +113,7 @@ function world(over: { preview?: (step: Step) => unknown; orderStatuses?: string
     db,
     ready: async () => ({ ok: true, blockers: [], address: AGENT }),
     simulate: vi.fn(async () => ({ ok: true })),
-    evaluateSwap: vi.fn(async () => ({ acceptable: true, costPct: 0.1, minOut: 99n * E18, quote: {} as never, valueRatio: 0.999 })),
+    evaluateSwap: vi.fn(async () => ({ acceptable: true, costPct: 0.1, minOut: 99n * E18, quote: {} as never, valueRatio: 0.999, impactOk: true })),
     maxUsdPerRun: 200,
     sleep: async () => {},
     receiptTimeoutMs: 50,
@@ -185,10 +191,100 @@ describe("runAgentPlan", () => {
 
   it("refuses a swap whose fresh quote is no longer acceptable, without swapping", async () => {
     const w = world();
-    w.deps.evaluateSwap = vi.fn(async () => ({ acceptable: false, costPct: 12.5, minOut: 0n, quote: {} as never, valueRatio: 0.875 }));
+    w.deps.evaluateSwap = vi.fn(async () => ({ acceptable: false, costPct: 12.5, minOut: 0n, quote: {} as never, valueRatio: 0.875, impactOk: true }));
     const out = await runAgentPlan(makeRun(), w.deps);
     expect((out as { reason: string }).reason).toContain("12.50%");
     expect(w.baw.marketOrderSwap).not.toHaveBeenCalled();
+  });
+
+  describe("swap order lookup", () => {
+    const swapStep = () => steps.find((x) => x.kind === "swap")!;
+    const order = (id: string, over: Record<string, unknown> = {}) => ({
+      orderId: id,
+      status: "FINISHED",
+      txHash: SWAP_HASH,
+      fromToken: usd1.toUpperCase().replace("0X", "0x"),
+      toToken: usdt.toLowerCase(),
+      fromTokenQty: "100.000000000000000000",
+      bookTime: new Date(Date.now() + 1000).toISOString(),
+      ...over,
+    });
+    const missing = (w: ReturnType<typeof world>) => {
+      w.baw.marketOrderList.mockImplementation(async () => null);
+    };
+
+    it("adopts the real order when the returned id finds nothing, and verifies its receipt", async () => {
+      const w = world();
+      missing(w);
+      w.baw.recentOrders.mockImplementation(async () => [order("X846"), order("Y1", { fromTokenQty: "5" })]);
+      const id = makeRun();
+      expect(await runAgentPlan(id, w.deps)).toEqual({ status: "done" });
+      expect(w.baw.recentOrders).toHaveBeenCalledWith("56");
+      expect(getRun(id, db)!.steps[3]).toMatchObject({ status: "confirmed", orderId: "X846", txHash: SWAP_HASH });
+    });
+
+    it("fails on ambiguity without retrying", async () => {
+      const w = world();
+      missing(w);
+      w.baw.recentOrders.mockImplementation(async () => [order("X846"), order("X847")]);
+      const id = makeRun();
+      const out = await runAgentPlan(id, w.deps);
+      expect((out as { reason: string }).reason).toBe("Found 2 matching swap orders, cannot tell which is ours: X846, X847");
+      expect(getRun(id, db)!.steps[3].status).toBe("failed");
+      expect(w.baw.marketOrderSwap).toHaveBeenCalledTimes(1);
+    });
+
+    it("ignores orders with another amount or booked before submission, then times out", async () => {
+      const w = world();
+      missing(w);
+      w.baw.recentOrders.mockImplementation(async () => [
+        order("A1", { fromTokenQty: "99.5" }),
+        order("A2", { bookTime: new Date(Date.now() - 3_600_000).toISOString() }),
+        order("A3", { toToken: usd1 }),
+      ]);
+      const id = makeRun();
+      const out = await runAgentPlan(id, w.deps);
+      expect((out as { reason: string }).reason).toContain("still pending");
+      expect(getRun(id, db)!.steps[3]).toMatchObject({ status: "failed", orderId: "ord-1" });
+    });
+
+    it("ignores an order already recorded on another step", async () => {
+      const w = world();
+      missing(w);
+      const id = makeRun();
+      upsertStep({ runId: id, idx: 0, kind: "approve", status: "confirmed", orderId: "X846" }, db);
+      w.baw.recentOrders.mockImplementation(async () => [order("X846")]);
+      const out = await runAgentPlan(id, w.deps);
+      expect((out as { reason: string }).reason).toContain("still pending");
+    });
+
+    it("fails when the finished order's transaction came from another address", async () => {
+      const w = world({ swapSender: OTHER });
+      const id = makeRun();
+      const out = await runAgentPlan(id, w.deps);
+      expect(out.status).toBe("failed");
+      expect((out as { reason: string }).reason).toMatch(/sender|wallet|from/i);
+      expect(getRun(id, db)!.steps[3].status).toBe("failed");
+    });
+
+    it("fails a finished order that has no transaction hash", async () => {
+      const w = world();
+      w.baw.marketOrderList.mockImplementation(async () => ({ orderId: "ord-1", status: "FINISHED", txHash: null }));
+      const out = await runAgentPlan(makeRun(), w.deps);
+      expect((out as { reason: string }).reason).toContain("without a transaction hash");
+    });
+
+    it("heals a swap left in sent state by looking the order up again", async () => {
+      const w = world();
+      missing(w);
+      w.baw.recentOrders.mockImplementation(async () => [order("X846")]);
+      const id = makeRun();
+      for (const s of steps.slice(0, 3)) upsertStep({ runId: id, idx: s.idx, kind: s.kind, status: "confirmed" }, db);
+      upsertStep({ runId: id, idx: swapStep().idx, kind: "swap", status: "sent", orderId: "X845" }, db);
+      expect(await runAgentPlan(id, w.deps)).toEqual({ status: "done" });
+      expect(w.baw.marketOrderSwap).not.toHaveBeenCalled();
+      expect(getRun(id, db)!.steps[3]).toMatchObject({ status: "confirmed", orderId: "X846" });
+    });
   });
 
   it("stops on a failed simulation before asking the wallet", async () => {

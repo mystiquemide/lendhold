@@ -33,6 +33,7 @@ import { computeRisk, toUnits, type Health } from "./risk";
 import { computeSizing, minLoanFloor, sessionNotices, type Notice, type Sizing } from "./sizing";
 import {
   evaluateSwap,
+  swapRejectionMessage,
   type SwapEval,
   type SwapToken,
 } from "./swap-eval";
@@ -284,10 +285,7 @@ async function quoteLeg(
     return null;
   }
   if (!e.acceptable) {
-    b.block(
-      "SWAP_COST_TOO_HIGH",
-      `Swapping ${from.symbol} to ${to.symbol} would cost about ${e.costPct.toFixed(2)}%, which is too much`,
-    );
+    b.block("SWAP_COST_TOO_HIGH", swapRejectionMessage(from.symbol, to.symbol, e));
     return null;
   }
   return e;

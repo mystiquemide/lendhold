@@ -36,6 +36,8 @@ export interface SwapEval {
   /** 1 - valueRatio, in percent. */
   costPct: number;
   acceptable: boolean;
+  /** False when the quote's price impact is above the limit, whatever the value check says. */
+  impactOk: boolean;
   minOut: bigint;
 }
 
@@ -53,11 +55,19 @@ export async function evaluateSwap(
   });
   if (!quote) return null;
   const ratio = valueRatio(amountIn, quote.toAmount, from, to);
+  const impactOk = isQuoteAcceptable(quote);
   return {
     quote,
     valueRatio: ratio,
     costPct: (1 - ratio) * 100,
-    acceptable: isQuoteAcceptable(quote) && ratio >= MIN_VALUE_RATIO,
+    acceptable: impactOk && ratio >= MIN_VALUE_RATIO,
+    impactOk,
     minOut: applySlippage(quote.toAmount),
   };
+}
+
+export function swapRejectionMessage(fromSymbol: string, toSymbol: string, e: SwapEval): string {
+  return e.impactOk !== false
+    ? `Swapping ${fromSymbol} to ${toSymbol} would cost about ${e.costPct.toFixed(2)}%, which is too much`
+    : `Price impact for ${fromSymbol} to ${toSymbol} is ${(e.quote.priceImpact * 100).toFixed(2)}%, above the 1% limit. Try again in a moment or use a smaller amount`;
 }

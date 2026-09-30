@@ -249,7 +249,7 @@ describe("swap value check", () => {
     const plan = await buildPlan({ ...base, action: "buy", amount: "50" });
     expect(plan.blockers).toHaveLength(1);
     expect(plan.blockers[0].code).toBe("SWAP_COST_TOO_HIGH");
-    expect(plan.blockers[0].message).toMatch(/about \d+\.\d+%/);
+    expect(plan.blockers[0].message).toMatch(/would cost about \d+\.\d+%, which is too much/);
     expect(plan.steps).toEqual([]);
   });
 
@@ -257,7 +257,12 @@ describe("swap value check", () => {
     getQuote.mockImplementation(async (i: { amount: bigint }) => ({
       ...(await fairQuote({ from: USDT, to: NVDAB, amount: i.amount })), priceImpact: 0.02,
     }));
-    expect((await buildPlan({ ...base, action: "buy", amount: "50" })).blockers[0].code).toBe("SWAP_COST_TOO_HIGH");
+    const impact = (await buildPlan({ ...base, action: "buy", amount: "50" })).blockers[0];
+    expect(impact.code).toBe("SWAP_COST_TOO_HIGH");
+    expect(impact.message).toBe(
+      "Price impact for USDT to NVDAB is 2.00%, above the 1% limit. Try again in a moment or use a smaller amount",
+    );
+    expect(impact.message).not.toMatch(/would cost/);
     getQuote.mockResolvedValue(null);
     expect((await buildPlan({ ...base, action: "buy", amount: "50" })).blockers[0].code).toBe("NO_QUOTE");
   });

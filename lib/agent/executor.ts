@@ -1,16 +1,18 @@
 import "server-only";
-import { formatUnits, getAddress, type Address } from "viem";
+import { formatUnits, getAddress, parseUnits, type Address } from "viem";
 import { getChain } from "@/lib/chain";
 import { getConfig } from "@/lib/config";
 import { fromJson, toJson } from "@/lib/json";
 import { simulateStep, type StepSimulation } from "@/lib/engine/checks";
 import type { Plan, Step } from "@/lib/engine/planner";
-import { evaluateSwap, SLIPPAGE_PERCENT, type SwapEval, type SwapToken } from "@/lib/engine/swap-eval";
+import { evaluateSwap, SLIPPAGE_PERCENT, swapRejectionMessage, type SwapEval, type SwapToken } from "@/lib/engine/swap-eval";
 import { verifyTx, type ObservedTx } from "@/lib/engine/verify";
 import { erc20Allowance, erc20Balance, getPosition, moolahAddress } from "@/lib/lista/chain";
 import { getRun, updateRunStatus, upsertStep, type RunStep, type RunWithSteps } from "@/lib/store/db";
 import type Database from "better-sqlite3";
-import { AgentError, ensureAgentReady, getBaw, type AgentReadiness, type Baw, type ContractCallPreview } from "./baw";
+import { AgentError, ensureAgentReady, getBaw, type AgentOrder, type AgentReadiness, type Baw, type ContractCallPreview } from "./baw";
+
+const ORDER_CLOCK_SKEW_MS = 10_000;
 
 export interface ChainReader {
   allowance(token: Address, owner: Address, spender: Address): Promise<bigint>;
@@ -214,7 +216,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
         continue;
       }
       if (rec?.status === "sent" && step.kind === "swap" && rec.orderId) {
-        const outcome = await pollOrder(step, rec.orderId);
+        const outcome = await pollOrder(step, rec.orderId, rec.updatedAt);
         if (outcome) return fail(step, outcome);
         continue;
       }
@@ -304,9 +306,10 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     const evaluation = await d.evaluateSwap(from, to, s.amountIn, owner);
     if (!evaluation) return `No route to swap ${s.fromSymbol} to ${s.toSymbol} right now`;
     if (!evaluation.acceptable) {
-      return `Swapping ${s.fromSymbol} to ${s.toSymbol} would cost about ${evaluation.costPct.toFixed(2)}%, which is too much`;
+      return swapRejectionMessage(s.fromSymbol, s.toSymbol, evaluation);
     }
     write(step.idx, step.kind, { status: "simulated" });
+    const submittedAt = Date.now();
     const submitted = await d.baw.marketOrderSwap({
       fromTokenQty: formatUnits(s.amountIn, s.fromDecimals),
       fromToken: s.from,
@@ -314,18 +317,57 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
       slippage: SLIPPAGE_PERCENT,
     });
     write(step.idx, step.kind, { status: "sent", orderId: submitted.orderId });
-    return pollOrder(step, submitted.orderId);
+    return pollOrder(step, submitted.orderId, submittedAt);
   }
 
-  async function pollOrder(step: Step, orderId: string): Promise<string | null> {
+  /** The order id returned by the CLI can be off by one from the real order, so fall back to matching recent orders. */
+  async function findOrderByMatch(step: Step, submittedAt: number): Promise<{ order?: AgentOrder; ambiguous?: string }> {
+    const s = step.swap;
+    if (!s) return {};
+    const taken = new Set(load().steps.filter((r) => r.idx !== step.idx && r.orderId).map((r) => r.orderId));
+    const matches = (await d.baw.recentOrders("56")).filter((o) => {
+      if (taken.has(o.orderId)) return false;
+      if (o.fromToken?.toLowerCase() !== s.from.toLowerCase() || o.toToken?.toLowerCase() !== s.to.toLowerCase()) return false;
+      try {
+        if (!o.fromTokenQty || parseUnits(o.fromTokenQty, s.fromDecimals) !== s.amountIn) return false;
+      } catch {
+        return false;
+      }
+      const booked = o.bookTime ? Date.parse(o.bookTime) : NaN;
+      return Number.isFinite(booked) && booked >= submittedAt - ORDER_CLOCK_SKEW_MS;
+    });
+    if (matches.length === 1) return { order: matches[0] };
+    if (matches.length > 1) {
+      return { ambiguous: `Found ${matches.length} matching swap orders, cannot tell which is ours: ${matches.map((o) => o.orderId).join(", ")}` };
+    }
+    return {};
+  }
+
+  async function pollOrder(step: Step, initialOrderId: string, submittedAt: number): Promise<string | null> {
     const deadline = Date.now() + d.orderTimeoutMs;
+    let orderId = initialOrderId;
     for (;;) {
-      const order = await d.baw.marketOrderList(orderId);
+      let order = await d.baw.marketOrderList(orderId);
+      if (!order) {
+        const found = await findOrderByMatch(step, submittedAt);
+        if (found.ambiguous) return found.ambiguous;
+        if (found.order) {
+          order = found.order;
+          orderId = order.orderId;
+          write(step.idx, step.kind, { status: "sent", orderId });
+        }
+      }
       if (order?.status === "FINISHED") {
-        write(step.idx, step.kind, { status: "confirmed", txHash: order.txHash ?? null, orderId, error: null });
+        if (!order.txHash) return `Swap order ${orderId} finished without a transaction hash`;
+        const hash = order.txHash as `0x${string}`;
+        const observed = await d.chain.waitForTx(hash, d.receiptTimeoutMs);
+        if (!observed) return `Swap transaction ${hash} was not mined within ${Math.round(d.receiptTimeoutMs / 1000)}s`;
+        const result = verifyTx(observed, { from: owner });
+        if (!result.ok) return result.message;
+        write(step.idx, step.kind, { status: "confirmed", txHash: hash, orderId, error: null });
         return null;
       }
-      if (order?.status === "FAILED") return `Swap order ${orderId} failed on-chain (status FAILED)`;
+      if (order?.status === "FAILED") return `Binance marked swap order ${orderId} as FAILED`;
       if (Date.now() >= deadline) return `Swap order ${orderId} was still pending after ${Math.round(d.orderTimeoutMs / 1000)}s`;
       await d.sleep(d.orderPollIntervalMs);
     }

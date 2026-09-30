@@ -2,7 +2,7 @@ import { z } from "zod";
 import { handle, json, parseBody } from "@/lib/api";
 import { AppError } from "@/lib/errors";
 import { buildSwap } from "@/lib/binance/trading";
-import { evaluateSwap, SLIPPAGE_PERCENT } from "@/lib/engine/swap-eval";
+import { evaluateSwap, SLIPPAGE_PERCENT, swapRejectionMessage } from "@/lib/engine/swap-eval";
 import { loadPlan } from "@/lib/plan-store";
 import { saveBuiltTx } from "@/lib/store/db";
 
@@ -28,7 +28,7 @@ export const POST = handle(async (req) => {
   if (!evaluation.acceptable) {
     throw new AppError(
       "SWAP_COST_TOO_HIGH",
-      `Swapping ${s.fromSymbol} to ${s.toSymbol} would cost about ${evaluation.costPct.toFixed(2)}%`,
+      swapRejectionMessage(s.fromSymbol, s.toSymbol, evaluation),
       409,
     );
   }

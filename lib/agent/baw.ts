@@ -134,6 +134,8 @@ const orderData = z.looseObject({
       fromToken: z.string().optional(),
       toToken: z.string().optional(),
       fromTokenQty: z.string().optional(),
+      toTokenActualQty: z.string().nullish(),
+      bookTime: z.string().nullish(),
     }),
   ),
 });
@@ -211,6 +213,7 @@ export interface Baw {
   marketOrderQuote(p: SwapParams): Promise<AgentQuote>;
   marketOrderSwap(p: SwapParams): Promise<{ orderId: string }>;
   marketOrderList(orderId: string): Promise<AgentOrder | null>;
+  recentOrders(binanceChainId: string): Promise<AgentOrder[]>;
   contractCallPreview(p: { from: string; to: string; value?: bigint; inputData?: string; binanceChainId?: string }): Promise<ContractCallPreview>;
   contractCallExecute(requestId: string): Promise<ContractCallExecution>;
 }
@@ -293,6 +296,10 @@ export function createBaw(opts: BawOptions): Baw {
     async marketOrderList(orderId) {
       const data = await call("market-order list", ["--orderId", orderId], orderData);
       return data.list.find((o) => o.orderId === orderId) ?? null;
+    },
+    async recentOrders(binanceChainId) {
+      const data = await call("market-order list", ["--binanceChainId", binanceChainId], orderData);
+      return data.list;
     },
     contractCallPreview(p) {
       const args = [
