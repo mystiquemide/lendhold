@@ -16,6 +16,12 @@ vi.mock("@/lib/binance/rwa", () => ({
   getAssetStatus: (...a: unknown[]) => m.getAssetStatus(...a),
   getMarketSession: (...a: unknown[]) => m.getMarketSession(...a),
 }));
+const chainM = vi.hoisted(() => ({ readMinLoan: vi.fn(), borrowRatePerSecond: vi.fn() }));
+vi.mock("@/lib/lista/chain", () => ({
+  readMinLoan: (...a: unknown[]) => chainM.readMinLoan(...a),
+  borrowRatePerSecond: (...a: unknown[]) => chainM.borrowRatePerSecond(...a),
+  aprFromRatePerSecond: (r: bigint) => (Number(r) / 1e18) * 31_536_000,
+}));
 vi.mock("@/lib/lista/markets", () => ({ getEligibleMarkets: (...a: unknown[]) => m.getEligibleMarkets(...a) }));
 vi.mock("@/lib/engine/market-select", async (orig) => ({
   ...(await orig<typeof import("@/lib/engine/market-select")>()),
@@ -23,7 +29,7 @@ vi.mock("@/lib/engine/market-select", async (orig) => ({
 }));
 
 import { clearCache } from "@/lib/cache";
-import { getStockSnapshot, marketLabel, stripIssuerSuffix } from "@/lib/engine/snapshot";
+import { getShareExample, getStockSnapshot, marketLabel, stripIssuerSuffix } from "@/lib/engine/snapshot";
 import { bufferBps, BUFFER_CLOSED, BUFFER_OPEN } from "@/lib/engine/sizing";
 
 const bstock = { address: getAddress(NVDAB), symbol: "NVDAB", name: "NVIDIA (bStocks)", platformId: "bstock", ticker: "NVDA", decimals: 18, ratio: 1, logoUrl: null };
@@ -112,5 +118,60 @@ describe("marketLabel and name", () => {
   it("strips the issuer suffix", () => {
     expect(stripIssuerSuffix("NVIDIA (bStocks)")).toBe("NVIDIA");
     expect(stripIssuerSuffix("Apple")).toBe("Apple");
+  });
+});
+
+describe("getShareExample", () => {
+  const E18 = 10n ** 18n;
+  const ratioToken = { ...bstock, ratio: 1.25 };
+  const chainState = (over: Record<string, unknown> = {}) => ({
+    availableUsd: 1000,
+    availableLoan: 1_000n * E18,
+    loanDecimals: 18,
+    loanPrice: 100_000_000n,
+    collateralPrice: 200n * 100_000_000n,
+    state: {},
+    ...over,
+  });
+
+  function setupExample(over: { open?: boolean; reason?: string | null; chain?: Record<string, unknown> } = {}) {
+    setup({ open: over.open ?? true, reason: over.reason });
+    m.listRwaTokens.mockResolvedValue([ratioToken]);
+    m.loadChainStates.mockResolvedValue(new Map([["0xaa", chainState(over.chain)]]));
+    chainM.readMinLoan.mockResolvedValue(15n * E18);
+    chainM.borrowRatePerSecond.mockResolvedValue(273059248n);
+  }
+
+  it("sizes exactly one share when the ratio is not 1, open buffer", async () => {
+    setupExample();
+    const e = await getShareExample("NVDA");
+    // 1 share = 0.8 tokens at $200 per token = $160 of collateral
+    expect(e.sharePrice).toBeCloseTo(160, 9);
+    expect(e.maxBorrow).toBeCloseTo(120, 6);
+    expect(e.safeBorrow).toBeCloseTo(72, 6);
+    // liquidation: 72 / (0.8 * 0.75) = 120 per token, 96 per share
+    expect(e.riskPricePerShare).toBeCloseTo(96, 6);
+    expect(e.cushionPct).toBeCloseTo(40, 6);
+    expect(e.health).toBe("safe");
+    expect(e.marketOpen).toBe(true);
+    expect(e.loanSymbol).toBe("USD1");
+    expect(e.minLoan).toBeCloseTo(15.15, 9);
+    expect(e.aprPct).toBeCloseTo((273059248 / 1e18) * 31_536_000 * 100, 9);
+  });
+
+  it("uses the closed buffer, so cushion is 1 minus the buffer", async () => {
+    setupExample({ open: false });
+    const e = await getShareExample("NVDA");
+    expect(e.maxBorrow).toBeCloseTo(120, 6);
+    expect(e.safeBorrow).toBeCloseTo(54, 6);
+    expect(e.riskPricePerShare).toBeCloseTo(72, 6);
+    expect(e.cushionPct).toBeCloseTo(55, 6);
+  });
+
+  it("caps borrowing at available liquidity", async () => {
+    setupExample({ chain: { availableLoan: 50n * E18 } });
+    const e = await getShareExample("NVDA");
+    expect(e.safeBorrow).toBeCloseTo(50, 6);
+    expect(e.maxBorrow).toBeCloseTo(50, 6);
   });
 });

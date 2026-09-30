@@ -1,3 +1,4 @@
+import { fromJson } from "@/lib/json";
 import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -358,4 +359,94 @@ export function listRunsByAddress(
     .prepare("SELECT * FROM runs WHERE lower(address) = lower(?) ORDER BY created_at DESC, rowid DESC LIMIT ?")
     .all(address, limit) as RunRow[];
   return rows.map(toRun);
+}
+
+export interface ConfirmedStep {
+  runId: string;
+  path: RunPath;
+  action: string | null;
+  address: string | null;
+  kind: string | null;
+  label: string | null;
+  txHash: string;
+  confirmedAt: number;
+}
+
+interface PlanStepJson {
+  label?: string;
+  kind?: string;
+  to?: string;
+  selector?: string;
+}
+
+interface PlanJson {
+  steps?: PlanStepJson[];
+  display?: { sharesBefore?: number | null; sharesAfter?: number | null };
+}
+
+function parsePlan(json: string | null): PlanJson | null {
+  if (!json) return null;
+  try {
+    return fromJson<PlanJson>(json);
+  } catch {
+    return null;
+  }
+}
+
+/** Confirmed steps that have a transaction hash, newest first. */
+export function listConfirmedSteps(limit: number, db: Database.Database = getDb()): ConfirmedStep[] {
+  const rows = db
+    .prepare(
+      `SELECT s.run_id, s.idx, s.kind, s.tx_hash, s.updated_at, r.path, r.action, r.address, r.plan_json
+       FROM run_steps s JOIN runs r ON r.id = s.run_id
+       WHERE s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != ''
+       ORDER BY s.updated_at DESC, s.rowid DESC
+       LIMIT ?`,
+    )
+    .all(limit) as {
+    run_id: string;
+    idx: number;
+    kind: string | null;
+    tx_hash: string;
+    updated_at: number;
+    path: RunPath;
+    action: string | null;
+    address: string | null;
+    plan_json: string | null;
+  }[];
+  return rows.map((r) => ({
+    runId: r.run_id,
+    path: r.path,
+    action: r.action,
+    address: r.address,
+    kind: r.kind,
+    label: parsePlan(r.plan_json)?.steps?.[r.idx]?.label ?? null,
+    txHash: r.tx_hash,
+    confirmedAt: r.updated_at,
+  }));
+}
+
+export interface ShowcasePlan {
+  action: string;
+  path: RunPath;
+  steps: { kind: string | null; to: string | null; selector: string | null }[];
+  display: { sharesBefore: number | null; sharesAfter: number | null };
+}
+
+/** Most recent finished borrow, repay or deposit run, else any finished run. */
+export function latestShowcasePlan(db: Database.Database = getDb()): ShowcasePlan | null {
+  const pick = (where: string) =>
+    db
+      .prepare(`SELECT path, action, plan_json FROM runs WHERE status = 'done' AND plan_json IS NOT NULL ${where} ORDER BY updated_at DESC, rowid DESC LIMIT 1`)
+      .get() as { path: RunPath; action: string | null; plan_json: string } | undefined;
+  const row = pick("AND action IN ('borrow', 'repay', 'deposit')") ?? pick("");
+  if (!row) return null;
+  const plan = parsePlan(row.plan_json);
+  if (!plan?.steps || !row.action) return null;
+  return {
+    action: row.action,
+    path: row.path,
+    steps: plan.steps.map((st) => ({ kind: st.kind ?? null, to: st.to ?? null, selector: st.selector ?? null })),
+    display: { sharesBefore: plan.display?.sharesBefore ?? null, sharesAfter: plan.display?.sharesAfter ?? null },
+  };
 }

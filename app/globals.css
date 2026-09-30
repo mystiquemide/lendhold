@@ -77,3 +77,21 @@ body {
     transition: none !important;
   }
 }
+
+.cluster-outer {
+  container-type: inline-size;
+}
+
+@media (min-width: 768px) {
+  .cluster-frame {
+    height: calc(600px * min(1, tan(atan2(100cqw, 1224px))));
+  }
+
+  .cluster-stage {
+    position: relative;
+    width: 1224px;
+    height: 600px;
+    transform-origin: top left;
+    scale: min(1, tan(atan2(100cqw, 1224px)));
+  }
+}

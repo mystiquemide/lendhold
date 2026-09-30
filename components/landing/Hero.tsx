@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Pill } from "@/components/ui/Pill";
+import { HeroCluster } from "./HeroCluster";
 import { HeroStrip } from "./HeroStrip";
 
 export function Hero() {
@@ -28,6 +29,7 @@ export function Hero() {
           <HeroStrip />
         </Suspense>
       </div>
+      <HeroCluster />
     </section>
   );
 }
