@@ -85,13 +85,15 @@ Show these in plain words and ask for a clear yes before anything runs:
 | Notices | every entry of `notices`: show `message` |
 | Steps | each entry of `steps`: `idx + 1`, `label` |
 
+`plan.market.minLoan` is Lista's minimum loan in loan units (divide by `plan.market.loanDecimals`). Debt must be zero or at least this amount (plus a 1% margin the plan adds), so a borrow or partial repay that would leave less is blocked with `BELOW_MIN_LOAN` or `PARTIAL_REPAY_BELOW_MIN`.
+
 `display` and `sizing` fields can be null for `buy` plans or when nothing is available. Leave out fields that are null.
 Notice codes: `MARKET_CLOSED`, `ASSET_PAUSED`, `ASSET_LIMITED`, `ABOVE_SAFE`. `ABOVE_SAFE` means the requested amount is more than the safe amount: say so clearly.
 
 ### Blockers
 
 `plan.blockers` is a list of `{ code, message }`. When it is not empty, `steps` is empty and nothing can run. Show each `message`.
-Codes include `NO_MARKET`, `NO_COLLATERAL`, `ABOVE_MAX`, `INSUFFICIENT_BALANCE`, `ASSET_NOT_TRADING`, `SWAP_COST_TOO_HIGH`, `NO_QUOTE`, `NOTHING_TO_BORROW`, `NO_DEBT`, `ABOVE_DEBT`, `INSUFFICIENT_LOAN_BALANCE`, `WOULD_LIQUIDATE`.
+Codes include `NO_MARKET`, `NO_COLLATERAL`, `ABOVE_MAX`, `INSUFFICIENT_BALANCE`, `ASSET_NOT_TRADING`, `SWAP_COST_TOO_HIGH`, `NO_QUOTE`, `NOTHING_TO_BORROW`, `NO_DEBT`, `ABOVE_DEBT`, `INSUFFICIENT_LOAN_BALANCE`, `WOULD_LIQUIDATE`, `BELOW_MIN_LOAN`, `PARTIAL_REPAY_BELOW_MIN`.
 
 ### Review
 

@@ -5,6 +5,7 @@ export const moolahAbi = parseAbi([
   "function idToMarketParams(bytes32 id) view returns (MarketParams)",
   "function market(bytes32 id) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)",
   "function position(bytes32 id, address user) view returns (uint256 supplyShares, uint128 borrowShares, uint128 collateral)",
+  "function minLoan(MarketParams marketParams) view returns (uint256)",
   "function isWhiteList(bytes32 id, address account) view returns (bool)",
   "function providers(bytes32 id, address token) view returns (address)",
   "function brokers(bytes32 id) view returns (address)",

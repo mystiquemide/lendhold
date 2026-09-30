@@ -16,6 +16,7 @@ const m = vi.hoisted(() => ({
   erc20Balance: vi.fn(),
   erc20Decimals: vi.fn(),
   getPosition: vi.fn(),
+  readMinLoan: vi.fn(),
   borrowRatePerSecond: vi.fn(),
   pickMarketFor: vi.fn(),
 }));
@@ -39,6 +40,7 @@ vi.mock("@/lib/lista/chain", () => ({
   erc20Balance: (...a: unknown[]) => m.erc20Balance(...a),
   erc20Decimals: (...a: unknown[]) => m.erc20Decimals(...a),
   getPosition: (...a: unknown[]) => m.getPosition(...a),
+  readMinLoan: (...a: unknown[]) => m.readMinLoan(...a),
   borrowRatePerSecond: (...a: unknown[]) => m.borrowRatePerSecond(...a),
   aprFromRatePerSecond: (r: bigint) => (Number(r) / 1e18) * 31536000,
   moolahAddress: () => "0x8F73b65B4caAf64FBA2aF91cC5D4a2A1318E5D8C",
@@ -72,10 +74,10 @@ const params = (loan: string) => ({
   lltv: 75n * 10n ** 16n,
 });
 
-function setMarket(loan = USD1, loanSymbol = "USD1", availableLoan = 10_000n * E18) {
+function setMarket(loan = USD1, loanSymbol = "USD1", availableLoan = 10_000n * E18, lastUpdate = 0n) {
   const market = { id: NVDAB_MARKET, loanSymbol, lltv: 0.75, liquidityUsd: 1, params: params(loan) };
   const chain = {
-    state: { totalSupplyAssets: 20_000n * E18, totalSupplyShares: 0n, totalBorrowAssets: 10_000n * E18, totalBorrowShares: 10_000n * E18 * 10n ** 6n, lastUpdate: 0n, fee: 0n },
+    state: { totalSupplyAssets: 20_000n * E18, totalSupplyShares: 0n, totalBorrowAssets: 10_000n * E18, totalBorrowShares: 10_000n * E18 * 10n ** 6n, lastUpdate, fee: 0n },
     availableLoan,
     availableUsd: 1,
     loanDecimals: 18,
@@ -120,6 +122,7 @@ beforeEach(() => {
     ),
   );
   m.borrowRatePerSecond.mockResolvedValue(273059248n);
+  m.readMinLoan.mockResolvedValue(0n);
   setMarket();
   chainFns.erc20Allowance.mockResolvedValue(0n);
   chainFns.erc20Balance.mockResolvedValue(2n * E18);
@@ -360,5 +363,99 @@ describe("buy", () => {
     rwa.getAssetStatus.mockResolvedValue({ openState: true, marketStatus: null, reasonCode: "SPLIT", reasonMsg: null, nextOpenTime: null, nextCloseTime: null });
     expect((await buildPlan({ ...base, action: "buy", amount: "50" })).blockers[0].code).toBe("ASSET_NOT_TRADING");
     await expect(buildPlan({ address: USER, token: "0x1111111111111111111111111111111111111111", action: "buy", amount: "1" })).rejects.toMatchObject({ code: "UNKNOWN_TOKEN" });
+  });
+});
+
+describe("Lista minimum loan", () => {
+  const MIN = 15007212616455594723n;
+  // A last-update time in the future means no interest is accrued, so debts below are exact.
+  const noAccrual = 9_999_999_999n;
+  const debtOf = (assets: bigint) => ({ supplyShares: 0n, borrowShares: assets * 10n ** 6n, collateral: 2n * E18 });
+
+  beforeEach(() => {
+    setMarket(USD1, "USD1", 10_000n * E18, noAccrual);
+    m.readMinLoan.mockResolvedValue(MIN);
+  });
+
+  it("blocks an explicit borrow below the floor and exposes the raw minimum on the market", async () => {
+    const plan = await buildPlan({ ...base, action: "borrow", amount: "10" });
+    expect(plan.blockers).toEqual([{ code: "BELOW_MIN_LOAN", message: "Lista's minimum loan is 15.16 USD1. Borrow at least that much" }]);
+    expect(plan.steps).toEqual([]);
+    expect(plan.market!.minLoan).toBe(MIN);
+    expect(m.readMinLoan).toHaveBeenCalledWith(expect.objectContaining({ collateralToken: getAddress(NVDAB) }));
+  });
+
+  it("allows a borrow above the floor", async () => {
+    const plan = await buildPlan({ ...base, action: "borrow", amount: "16" });
+    expect(plan.blockers).toEqual([]);
+    expect(plan.steps.map((s) => s.kind)).toContain("borrow");
+    expect(plan.market!.minLoan).toBe(15007212616455594723n);
+  });
+
+  it("counts existing debt toward the floor", async () => {
+    chainFns.getPosition.mockResolvedValue(debtOf(10n * E18));
+    const ok = await buildPlan({ ...base, action: "borrow", amount: "6" });
+    expect(ok.blockers).toEqual([]);
+    const low = await buildPlan({ ...base, action: "borrow", amount: "1" });
+    expect(low.blockers).toEqual([{ code: "BELOW_MIN_LOAN", message: "Lista's minimum loan is 15.16 USD1. Your total debt must stay at or above that" }]);
+  });
+
+  it("says to deposit more when the default safe amount is below the floor", async () => {
+    // 0.1 NVDAB at $228 = $22.80; safe = 22.80 * 0.75 * 0.6 = 10.26
+    const plan = await buildPlan({ ...base, action: "borrow", collateralAmount: "0.1" });
+    expect(plan.blockers).toEqual([
+      { code: "BELOW_MIN_LOAN", message: "The safe amount is 10.26 USD1, below Lista's minimum loan of 15.16 USD1. Deposit more NVDAB to borrow" },
+    ]);
+    expect(plan.steps).toEqual([]);
+  });
+
+  it("checks ABOVE_MAX before the minimum and keeps NOTHING_TO_BORROW for a zero safe amount", async () => {
+    const above = await buildPlan({ ...base, action: "borrow", amount: "343" });
+    expect(above.blockers.map((x) => x.code)).toEqual(["ABOVE_MAX"]);
+    setMarket(USD1, "USD1", 0n, noAccrual);
+    const none = await buildPlan({ ...base, action: "borrow" });
+    expect(none.blockers.map((x) => x.code)).toEqual(["NOTHING_TO_BORROW"]);
+  });
+
+  it("does nothing new when the minimum is zero", async () => {
+    m.readMinLoan.mockResolvedValue(0n);
+    const plan = await buildPlan({ ...base, action: "borrow", amount: "1" });
+    expect(plan.blockers).toEqual([]);
+  });
+
+  it("blocks a partial repay that leaves debt under the floor", async () => {
+    chainFns.getPosition.mockResolvedValue(debtOf(20n * E18));
+    chainFns.erc20Balance.mockResolvedValue(1_000n * E18);
+    chainFns.erc20Allowance.mockResolvedValue(1_000n * E18);
+    const plan = await buildPlan({ ...base, action: "repay", amount: "15" });
+    expect(plan.blockers).toEqual([
+      {
+        code: "PARTIAL_REPAY_BELOW_MIN",
+        message: "That leaves 5.00 USD1 owed, below Lista's minimum loan of 15.16 USD1. Repay all, or leave at least 15.16 USD1 owed",
+      },
+    ]);
+    expect(plan.steps).toEqual([]);
+    expect(plan.market!.minLoan).toBe(MIN);
+  });
+
+  it("allows a partial repay that leaves enough, and repay all", async () => {
+    chainFns.erc20Balance.mockResolvedValue(1_000n * E18);
+    chainFns.erc20Allowance.mockResolvedValue(1_000n * E18);
+    chainFns.getPosition.mockResolvedValue(debtOf(40n * E18));
+    const partial = await buildPlan({ ...base, action: "repay", amount: "20" });
+    expect(partial.blockers).toEqual([]);
+    expect(partial.steps.map((x) => x.kind)).toEqual(["repay"]);
+    chainFns.getPosition.mockResolvedValue(debtOf(16n * E18));
+    const all = await buildPlan({ ...base, action: "repay", amount: "all" });
+    expect(all.blockers).toEqual([]);
+    expect(all.steps.map((x) => x.kind)).toEqual(["repay"]);
+    const exact = await buildPlan({ ...base, action: "repay", amount: "16" });
+    expect(exact.blockers).toEqual([]);
+  });
+
+  it("carries the minimum on withdraw plans", async () => {
+    chainFns.getPosition.mockResolvedValue({ supplyShares: 0n, borrowShares: 0n, collateral: 2n * E18 });
+    const plan = await buildPlan({ ...base, action: "withdraw", amount: "1" });
+    expect(plan.market!.minLoan).toBe(MIN);
   });
 });

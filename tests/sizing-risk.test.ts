@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSizing, type SizingInput } from "@/lib/engine/sizing";
+import { computeSizing, minLoanFloor, type SizingInput } from "@/lib/engine/sizing";
 import { computeRisk, healthFor, toUnits } from "@/lib/engine/risk";
 import { borrowSharesToAssets, withRepayHeadroom } from "@/lib/engine/debt";
 
@@ -95,6 +95,25 @@ describe("computeSizing", () => {
   it("handles a 6-decimal collateral", () => {
     const s = computeSizing({ ...base, collateralRaw: 3n * E6, collateralDecimals: 6 });
     expect(s.collateralValueLoan).toBe(300n * E18);
+  });
+});
+
+describe("minLoanFloor", () => {
+  it("is zero for no minimum", () => {
+    expect(minLoanFloor(0n)).toBe(0n);
+  });
+  it("adds 1% and rounds up", () => {
+    const live = 15007212616455594723n;
+    expect(minLoanFloor(live)).toBe((live * 10100n + 9999n) / 10000n);
+    expect(minLoanFloor(live)).toBeGreaterThan((live * 101n) / 100n);
+    expect(minLoanFloor(live) - (live * 101n) / 100n).toBeLessThanOrEqual(1n);
+  });
+  it("is exact when the margin divides evenly", () => {
+    expect(minLoanFloor(15n * E18)).toBe(1515n * 10n ** 16n);
+    expect(minLoanFloor(100n)).toBe(101n);
+  });
+  it("rounds up a tiny remainder", () => {
+    expect(minLoanFloor(1n)).toBe(2n);
   });
 });
 

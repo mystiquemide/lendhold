@@ -80,6 +80,16 @@ export async function getPosition(id: Hex, user: Address): Promise<Position> {
   return { supplyShares, borrowShares, collateral };
 }
 
+/** Lista reverts a borrow or repay that leaves debt above zero but below this, in loan-token units. */
+export async function readMinLoan(params: MarketParams): Promise<bigint> {
+  return getChain().readContract({
+    address: moolahAddress(),
+    abi: moolahAbi,
+    functionName: "minLoan",
+    args: [params],
+  });
+}
+
 export async function isWhiteListed(id: Hex, account: Address): Promise<boolean> {
   return getChain().readContract({
     address: moolahAddress(),

@@ -1,5 +1,6 @@
 export const BUFFER_OPEN = 6000n;
 export const BUFFER_CLOSED = 4500n;
+export const MIN_LOAN_MARGIN_BPS = 100n;
 const BPS = 10000n;
 const WAD = 10n ** 18n;
 
@@ -102,4 +103,11 @@ export function computeSizing(input: SizingInput): Sizing {
     buffer: Number(bufferBps) / Number(BPS),
     notices: sessionNotices(input.session),
   };
+}
+
+/** Lista reverts when debt ends below minLoan. 1% headroom covers loan-token price moves before the tx lands. Rounds up. */
+export function minLoanFloor(minLoan: bigint): bigint {
+  if (minLoan === 0n) return 0n;
+  const scale = BPS + MIN_LOAN_MARGIN_BPS;
+  return (minLoan * scale + BPS - 1n) / BPS;
 }

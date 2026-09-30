@@ -54,6 +54,7 @@ function plan(steps: Step[]): Plan {
       params: { loanToken: usd1, collateralToken: nvdab, oracle: MOOLAH, irm: MOOLAH, lltv: 75n * 10n ** 16n },
       loanSymbol: "USD1",
       loanDecimals: 18,
+      minLoan: 0n,
     },
     display: {} as Plan["display"],
     sizing: null,

@@ -16,6 +16,7 @@ import {
   erc20Decimals,
   getPosition,
   moolahAddress,
+  readMinLoan,
   type MarketParams,
 } from "@/lib/lista/chain";
 import {
@@ -29,7 +30,7 @@ import {
 import { borrowSharesToAssets, withRepayHeadroom } from "./debt";
 import { pickMarketFor, type MarketChainState } from "./market-select";
 import { computeRisk, toUnits, type Health } from "./risk";
-import { computeSizing, sessionNotices, type Notice, type Sizing } from "./sizing";
+import { computeSizing, minLoanFloor, sessionNotices, type Notice, type Sizing } from "./sizing";
 import {
   evaluateSwap,
   type SwapEval,
@@ -108,6 +109,8 @@ export interface PlanMarket {
   params: MarketParams;
   loanSymbol: string;
   loanDecimals: number;
+  /** Lista's minimum loan in loan-token units, as read on-chain (before the safety margin). */
+  minLoan: bigint;
 }
 
 export interface PlanDisplay {
@@ -154,6 +157,13 @@ const EMPTY_DISPLAY: PlanDisplay = {
   health: null,
   conversionCostPct: null,
 };
+
+/** Whole-number-friendly amount for messages: two decimals, rounded up. */
+export function fmtUp(amount: bigint, decimals: number): string {
+  const unit = 10n ** BigInt(Math.max(decimals - 2, 0));
+  const cents = decimals >= 2 ? (amount + unit - 1n) / unit : amount * 10n ** BigInt(2 - decimals);
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
 
 const selectorOf = (data: Hex): Hex => data.slice(0, 10) as Hex;
 
@@ -336,7 +346,8 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
   const chain = pick.chainStates.get(market.id)!;
   const params = market.params;
   const loan = loanSwapToken(market, chain);
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals };
+  const minLoan = await readMinLoan(params);
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
 
   const { session, statuses, allTrading } = await sessionFor(isOndo ? [token, collateral] : [collateral]);
   if (isOndo && !allTrading) {
@@ -431,6 +442,20 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
       b.block("NOTHING_TO_BORROW", "Nothing can be borrowed safely right now");
       return finish(plan, b);
     }
+  }
+
+  const floor = minLoanFloor(minLoan);
+  if (existingDebt + borrowAmount < floor) {
+    const sym = market.loanSymbol;
+    b.block(
+      "BELOW_MIN_LOAN",
+      req.amount
+        ? existingDebt > 0n
+          ? `Lista's minimum loan is ${fmtUp(floor, chain.loanDecimals)} ${sym}. Your total debt must stay at or above that`
+          : `Lista's minimum loan is ${fmtUp(floor, chain.loanDecimals)} ${sym}. Borrow at least that much`
+        : `The safe amount is ${fmtUp(sizing.safeBorrowNew, chain.loanDecimals)} ${sym}, below Lista's minimum loan of ${fmtUp(floor, chain.loanDecimals)} ${sym}. Deposit more ${collateral.symbol} to borrow`,
+    );
+    return finish(plan, b);
   }
 
   const moolah = moolahAddress();
@@ -533,7 +558,8 @@ async function planRepay(req: PlanRequest, owner: Address, token: RwaToken): Pro
   }
   const { market, position, chain } = found;
   const params = market.params;
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals };
+  const minLoan = await readMinLoan(params);
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
   const rate = await borrowRatePerSecond(params, chain.state);
   const debt = borrowSharesToAssets(position.borrowShares, chain.state, {
     ratePerSecond: rate,
@@ -545,6 +571,18 @@ async function planRepay(req: PlanRequest, owner: Address, token: RwaToken): Pro
   if (repayAssets !== undefined && repayAssets > debt) {
     b.block("ABOVE_DEBT", `That is more than you owe (${formatUnits(debt, chain.loanDecimals)} ${market.loanSymbol}). Choose repay all.`);
     return finish(plan, b);
+  }
+  if (repayAssets !== undefined) {
+    const remainingDebt = debt - repayAssets;
+    const floor = minLoanFloor(minLoan);
+    if (remainingDebt > 0n && remainingDebt < floor) {
+      const sym = market.loanSymbol;
+      b.block(
+        "PARTIAL_REPAY_BELOW_MIN",
+        `That leaves ${fmtUp(remainingDebt, chain.loanDecimals)} ${sym} owed, below Lista's minimum loan of ${fmtUp(floor, chain.loanDecimals)} ${sym}. Repay all, or leave at least ${fmtUp(floor, chain.loanDecimals)} ${sym} owed`,
+      );
+      return finish(plan, b);
+    }
   }
   const needed = all ? withRepayHeadroom(debt) : repayAssets!;
   const balance = await erc20Balance(params.loanToken, owner);
@@ -616,7 +654,8 @@ async function planWithdraw(req: PlanRequest, owner: Address, token: RwaToken): 
   }
   const { market, position, chain } = found;
   const params = market.params;
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals };
+  const minLoan = await readMinLoan(params);
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
   const rate = await borrowRatePerSecond(params, chain.state);
   const debt = borrowSharesToAssets(position.borrowShares, chain.state, {
     ratePerSecond: rate,
