@@ -1,4 +1,5 @@
 import { Hero } from "@/components/landing/Hero";
+import { ThreePoints } from "@/components/landing/ThreePoints";
 import { NavBar } from "@/components/ui/NavBar";
 
 const links = [
@@ -14,6 +15,7 @@ export default function Home() {
       <NavBar links={links} cta={{ label: "Open app", href: "/app" }} />
       <main>
         <Hero />
+        <ThreePoints />
       </main>
     </>
   );

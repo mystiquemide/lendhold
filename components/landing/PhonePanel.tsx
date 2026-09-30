@@ -20,7 +20,7 @@ export function PhonePanel({ example: e }: { example: ShareExample }) {
     <div
       role="img"
       aria-label={label}
-      className="flex w-[300px] flex-col overflow-hidden rounded-[44px] border border-line bg-sheet px-5 py-6 shadow-float md:z-30 md:absolute md:left-[49px] md:top-[24px]"
+      className="flex w-[300px] flex-col overflow-hidden rounded-[44px] border border-line bg-sheet px-5 py-6 shadow-float md:z-30 md:absolute md:left-[49px] md:bottom-0"
     >
       <div aria-hidden="true" className="flex flex-col gap-3">
         <div className="flex items-center gap-1.5 text-ink">
