@@ -1,26 +1,65 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-action: #594ff4;
+  --color-action-press: #4a40e0;
+  --color-action-tint: #dad6f7;
+  --color-on-action: #f2f2ec;
+  --color-ink: #1f1f1f;
+  --color-body: #5d5d5d;
+  --color-muted: #6d6d6d;
+  --color-line: #e7e7e7;
+  --color-canvas: #f6f6f6;
+  --color-sheet: #ffffff;
+  --color-footer: #1f1f1f;
+  --color-safe: #0a7a46;
+  --color-safe-tint: #e6f4ec;
+  --color-watch: #9a5b00;
+  --color-watch-tint: #fff3d6;
+  --color-risk: #d1193e;
+  --color-risk-tint: #fdecee;
+
+  --radius-pill: 99px;
+  --radius-card: 36px;
+  --radius-panel: 24px;
+  --radius-input: 16px;
+  --radius-sheet: 60px;
+
+  --shadow-float: 0 0 60px -13px #0000001f;
+
+  --breakpoint-sm: 480px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-body);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
