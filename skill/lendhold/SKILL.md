@@ -6,7 +6,7 @@ description: |
   Use this skill when users ask to:
   - borrow cash, USDT or stablecoins against stock tokens they already hold (bStocks, or Ondo tokens converted first)
   - repay a stock-backed loan or withdraw the collateral
-  - buy a bStock with USDT to use as collateral
+  - buy a bStock with USDT to use as collateral, or deposit a bStock as collateral without borrowing
   - see which of their stock tokens can be borrowed against, and how much is safe
   NOT for general token swaps, sending tokens, or non-stock assets: use binance-agentic-wallet for those.
 version: 0.1.0

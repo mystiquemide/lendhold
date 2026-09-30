@@ -322,6 +322,11 @@ describe("limits and readiness", () => {
     expect((await runAgentPlan(makeRun(blocked), w.deps)).status).toBe("failed");
   });
 
+  it("prices a deposit-only plan from its collateral, with nothing counted as spend", () => {
+    const deposit = { ...plan, action: "deposit" as const, steps: [steps[0], steps[1]] };
+    expect(planUsdValue(deposit)).toEqual({ spendUsd: 0, quotaUsd: 456 });
+  });
+
   it("computes the plan USD value from the largest moving step", () => {
     // the deposit counts toward wallet quotas at the position's collateral value, but not toward the per-run cap
     expect(planUsdValue(plan)).toEqual({ spendUsd: 100, quotaUsd: 456 });

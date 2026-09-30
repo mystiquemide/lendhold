@@ -46,7 +46,7 @@ import {
 } from "./tokens";
 import type { EligibleMarket } from "@/lib/lista/markets";
 
-export type PlanAction = "borrow" | "repay" | "withdraw" | "buy";
+export type PlanAction = "borrow" | "repay" | "withdraw" | "buy" | "deposit";
 export type StepKind =
   | "approve"
   | "supplyCollateral"
@@ -60,7 +60,7 @@ export interface PlanRequest {
   action: PlanAction;
   /** The stock token: a bStock, or an Ondo token when borrowing (it is converted first). */
   token: string;
-  /** Borrow and repay: loan-token units ("all" for repay). Withdraw: stock units ("all"). Buy: USDT units. */
+  /** Borrow and repay: loan-token units ("all" for repay). Withdraw: stock units ("all"). Buy: USDT units. Deposit: stock units ("all" or omitted: the whole wallet balance). */
   amount?: string;
   /** Borrow: stock units to deposit, default all of the wallet balance. */
   collateralAmount?: string;
@@ -320,6 +320,36 @@ function takeMarket(
   return marketId ? markets.find((m) => m.id.toLowerCase() === marketId.toLowerCase()) : undefined;
 }
 
+/** Approve (only when the allowance is short) and deposit, shared by borrow and deposit plans. */
+async function addDepositSteps(
+  b: Builder,
+  collateral: RwaToken,
+  params: MarketParams,
+  amount: bigint,
+  owner: Address,
+) {
+  const moolah = moolahAddress();
+  const allowance = await erc20Allowance(collateral.address as Address, owner, moolah);
+  if (allowance < amount) {
+    b.contract(
+      "approve",
+      `Allow ${collateral.symbol}`,
+      collateral.address as Address,
+      encodeApprove(moolah, amount),
+      collateral.address as Address,
+      amount,
+    );
+  }
+  b.contract(
+    "supplyCollateral",
+    `Deposit ${collateral.symbol}`,
+    moolah,
+    encodeSupplyCollateral(params, amount, owner),
+    collateral.address as Address,
+    amount,
+  );
+}
+
 // ---------------------------------------------------------------- borrow
 
 async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Promise<Plan> {
@@ -460,25 +490,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
 
   const moolah = moolahAddress();
   if (newCollateral > 0n) {
-    const allowance = await erc20Allowance(collateral.address as Address, owner, moolah);
-    if (allowance < newCollateral) {
-      b.contract(
-        "approve",
-        `Allow ${collateral.symbol}`,
-        collateral.address as Address,
-        encodeApprove(moolah, newCollateral),
-        collateral.address as Address,
-        newCollateral,
-      );
-    }
-    b.contract(
-      "supplyCollateral",
-      `Deposit ${collateral.symbol}`,
-      moolah,
-      encodeSupplyCollateral(params, newCollateral, owner),
-      collateral.address as Address,
-      newCollateral,
-    );
+    await addDepositSteps(b, collateral, params, newCollateral, owner);
   }
   b.contract(
     "borrow",
@@ -720,6 +732,99 @@ async function planWithdraw(req: PlanRequest, owner: Address, token: RwaToken): 
   return finish(plan, b);
 }
 
+// ---------------------------------------------------------------- deposit
+
+async function planDeposit(req: PlanRequest, owner: Address, token: RwaToken): Promise<Plan> {
+  const b = new Builder();
+  const plan = newPlan(b, req, owner, getAddress(token.address));
+  if (token.platformId !== "bstock") {
+    b.block("NOT_BSTOCK", "Deposit a bStock. Convert Ondo tokens by borrowing against them");
+    return finish(plan, b);
+  }
+
+  const existing = await findPositionMarket(token, owner, req.marketId, "collateral");
+  let market: EligibleMarket;
+  let chain: MarketChainState;
+  let position: { collateral: bigint; borrowShares: bigint };
+  if (existing) {
+    ({ market, chain, position } = existing);
+  } else {
+    const pick = await pickMarketFor(token, owner);
+    const chosen = pick ? (takeMarket(pick.all, req.marketId) ?? pick.market) : null;
+    if (!pick || !chosen) {
+      b.block("NO_MARKET", "No lending market with room right now");
+      return finish(plan, b);
+    }
+    market = chosen;
+    chain = pick.chainStates.get(chosen.id)!;
+    position = await getPosition(chosen.id, owner);
+  }
+  const params = market.params;
+  const minLoan = await readMinLoan(params);
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
+
+  const balance = await erc20Balance(token.address as Address, owner);
+  const all = !req.amount || req.amount === "all";
+  if (!all && /^0+(\.0+)?$/.test(req.amount!.trim())) {
+    b.block("INSUFFICIENT_BALANCE", `Enter an amount of ${token.symbol} above zero`);
+    return finish(plan, b);
+  }
+  const amount = all ? balance : parseAmount(req.amount!, token.decimals);
+  if (balance === 0n) {
+    b.block("INSUFFICIENT_BALANCE", `You hold no ${token.symbol}`);
+    return finish(plan, b);
+  }
+  if (amount > balance) {
+    b.block("INSUFFICIENT_BALANCE", `You hold less ${token.symbol} than requested`);
+    return finish(plan, b);
+  }
+
+  const rate = await borrowRatePerSecond(params, chain.state);
+  const debt = borrowSharesToAssets(position.borrowShares, chain.state, {
+    ratePerSecond: rate,
+    nowSec: BigInt(Math.floor(Date.now() / 1000)),
+  });
+  const totalCollateral = position.collateral + amount;
+  const { session } = await sessionFor([token]);
+  const sizing = computeSizing({
+    collateralRaw: totalCollateral,
+    collateralDecimals: token.decimals,
+    collateralPrice: chain.collateralPrice,
+    loanPrice: chain.loanPrice,
+    loanDecimals: chain.loanDecimals,
+    lltv: params.lltv,
+    existingDebt: debt,
+    availableLiquidity: chain.availableLoan,
+    session,
+  });
+  plan.sizing = sizing;
+  b.notices.push(...sizing.notices);
+
+  await addDepositSteps(b, token, params, amount, owner);
+
+  const risk = computeRisk({
+    collateralRaw: totalCollateral,
+    collateralDecimals: token.decimals,
+    ratio: token.ratio,
+    debtRaw: debt,
+    loanDecimals: chain.loanDecimals,
+    collateralPrice: chain.collateralPrice,
+    loanPrice: chain.loanPrice,
+    lltv: params.lltv,
+  });
+  plan.display = {
+    ...EMPTY_DISPLAY,
+    sharesBefore: toUnits(position.collateral, token.decimals) * token.ratio,
+    sharesAfter: toUnits(totalCollateral, token.decimals) * token.ratio,
+    debt: debt > 0n ? { symbol: market.loanSymbol, amount: debt, decimals: chain.loanDecimals } : null,
+    aprPct: aprFromRatePerSecond(rate) * 100,
+    riskPricePerShare: risk.liquidationPricePerShare,
+    cushionPct: risk.cushion == null ? null : risk.cushion * 100,
+    health: risk.health,
+  };
+  return finish(plan, b);
+}
+
 // ---------------------------------------------------------------- buy
 
 async function planBuy(req: PlanRequest, owner: Address, token: RwaToken): Promise<Plan> {
@@ -769,6 +874,8 @@ export async function buildPlan(req: PlanRequest): Promise<Plan> {
       return planWithdraw(req, owner, token);
     case "buy":
       return planBuy(req, owner, token);
+    case "deposit":
+      return planDeposit(req, owner, token);
   }
 }
 

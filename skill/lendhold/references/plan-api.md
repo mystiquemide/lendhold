@@ -57,9 +57,9 @@ Body:
 | Field | Notes |
 |-------|-------|
 | `address` | The wallet address from `baw wallet address` (chain 56) |
-| `action` | `borrow`, `repay`, `withdraw` or `buy` |
+| `action` | `borrow`, `repay`, `withdraw`, `buy` or `deposit` (deposit a bStock as collateral, no loan) |
 | `token` | The stock token address from `holdings` (bStock, or an Ondo token when borrowing). Never type it by hand |
-| `amount` | Borrow and repay: loan units (`"all"` for repay). Withdraw: stock units or `"all"`. Buy: USDT units. Omit on borrow to get the safe maximum |
+| `amount` | Borrow and repay: loan units (`"all"` for repay). Withdraw: stock units or `"all"`. Buy: USDT units. Deposit: stock units, default the whole wallet balance. Omit on borrow to get the safe maximum |
 | `collateralAmount` | Borrow only: stock units to deposit. Default all of the wallet's balance of that token |
 | `receive` | `"USDT"` (default) or `"loan"` to keep the loan token |
 | `withdraw` | Repay only: `true` with a full repay also withdraws the collateral |

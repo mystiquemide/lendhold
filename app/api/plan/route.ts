@@ -11,7 +11,7 @@ const amount = z.string().regex(/^(all|\d+(\.\d+)?)$/, "must be a decimal number
 
 const body = z.object({
   address: evmAddress,
-  action: z.enum(["borrow", "repay", "withdraw", "buy"]),
+  action: z.enum(["borrow", "repay", "withdraw", "buy", "deposit"]),
   token: evmAddress,
   amount: amount.optional(),
   collateralAmount: amount.optional(),

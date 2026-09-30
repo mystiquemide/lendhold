@@ -51,4 +51,17 @@ describe("live engine", () => {
     expect(small.steps).toEqual([]);
     expect(small.market!.minLoan).toBe(minLoan);
   });
+
+  it("builds a read-only deposit plan for a holder and simulates step 0", async () => {
+    const holder = await findNvdabHolder();
+    const plan = await buildPlan({ address: holder, action: "deposit", token: NVDAB, amount: "0.001" });
+    console.log("deposit steps:", plan.steps.map((s) => `${s.idx}:${s.kind}:${s.label}`), "blockers:", JSON.stringify(plan.blockers));
+    console.log("deposit display:", JSON.stringify(plan.display, (_k, v) => (typeof v === "bigint" ? v.toString() : v)));
+    expect(plan.blockers, JSON.stringify(plan.blockers)).toEqual([]);
+    expect(plan.steps[plan.steps.length - 1].kind).toBe("supplyCollateral");
+    const review = await prepareForReview(plan);
+    console.log("deposit review:", JSON.stringify({ ok: review.ok, steps: review.steps.map((x) => x.status), problems: review.problems }));
+    expect(["approve", "supplyCollateral"]).toContain(plan.steps[0].kind);
+    expect(review.steps[0], JSON.stringify(review)).toMatchObject({ status: "simulated_ok" });
+  });
 });

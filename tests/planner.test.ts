@@ -459,3 +459,80 @@ describe("Lista minimum loan", () => {
     expect(plan.market!.minLoan).toBe(MIN);
   });
 });
+
+describe("deposit", () => {
+  it("approves then deposits the whole wallet balance", async () => {
+    const plan = await buildPlan({ ...base, action: "deposit" });
+    expect(plan.blockers).toEqual([]);
+    expect(plan.steps.map((x) => x.kind)).toEqual(["approve", "supplyCollateral"]);
+    expect(plan.steps.map((x) => x.label)).toEqual(["Allow NVDAB", "Deposit NVDAB"]);
+    const [approve, supply] = plan.steps;
+    expect(approve.selector).toBe(SELECTORS.approve);
+    expect(approve.to).toBe(getAddress(NVDAB));
+    expect(approve.amount).toBe(2n * E18);
+    expect(supply.selector).toBe(SELECTORS.supplyCollateral);
+    expect(supply.to).toBe(MOOLAH);
+    expect(supply.amount).toBe(2n * E18);
+    expect(plan.action).toBe("deposit");
+    expect(plan.market).toMatchObject({ loanSymbol: "USD1", minLoan: 0n });
+    expect(plan.display.sharesBefore).toBe(0);
+    expect(plan.display.sharesAfter).toBe(2);
+    expect(plan.display.shareDeltaPct).toBeNull();
+    expect(plan.display.debt).toBeNull();
+    expect(plan.display.health).toBe("safe");
+    // 2 tokens x $228 = $456; safe = 456 * 0.75 * 0.6 = 205.2
+    expect(plan.sizing!.collateralValueLoan).toBe(456n * E18);
+    expect(plan.sizing!.safeBorrowNew).toBe(20520n * 10n ** 16n);
+  });
+
+  it("skips the approve when the allowance already covers the amount", async () => {
+    chainFns.erc20Allowance.mockResolvedValue(2n * E18);
+    const plan = await buildPlan({ ...base, action: "deposit", amount: "0.5" });
+    expect(plan.steps.map((x) => x.kind)).toEqual(["supplyCollateral"]);
+    expect(plan.steps[0].amount).toBe(E18 / 2n);
+    expect(plan.display.sharesAfter).toBe(0.5);
+  });
+
+  it("adds to an existing position and sizes on the total collateral and debt", async () => {
+    setMarket(USD1, "USD1", 10_000n * E18, 9_999_999_999n);
+    chainFns.getPosition.mockResolvedValue({ supplyShares: 0n, borrowShares: 20n * E18 * 10n ** 6n, collateral: E18 });
+    const plan = await buildPlan({ ...base, action: "deposit", amount: "0.5" });
+    expect(plan.blockers).toEqual([]);
+    expect(plan.display.sharesBefore).toBe(1);
+    expect(plan.display.sharesAfter).toBe(1.5);
+    // 1.5 x $228 = $342; safe total 342 * 0.75 * 0.6 = 153.9, minus 20 owed
+    expect(plan.sizing!.collateralValueLoan).toBe(342n * E18);
+    expect(plan.sizing!.safeBorrowNew).toBe(13390n * 10n ** 16n);
+    expect(plan.display.debt).toMatchObject({ symbol: "USD1", amount: 20n * E18 });
+    expect(plan.display.riskPricePerShare).not.toBeNull();
+    expect(plan.display.health).toBe("safe");
+  });
+
+  it("is not subject to the minimum loan", async () => {
+    m.readMinLoan.mockResolvedValue(15007212616455594723n);
+    const plan = await buildPlan({ ...base, action: "deposit", amount: "0.001" });
+    expect(plan.blockers).toEqual([]);
+    expect(plan.market!.minLoan).toBe(15007212616455594723n);
+  });
+
+  it("blocks Ondo tokens, empty wallets, too-large and zero amounts, and missing markets", async () => {
+    const ondo = await buildPlan({ address: USER, token: NVDAON, action: "deposit" });
+    expect(ondo.blockers.map((x) => x.code)).toEqual(["NOT_BSTOCK"]);
+
+    chainFns.erc20Balance.mockResolvedValue(0n);
+    const none = await buildPlan({ ...base, action: "deposit" });
+    expect(none.blockers).toEqual([{ code: "INSUFFICIENT_BALANCE", message: "You hold no NVDAB" }]);
+
+    chainFns.erc20Balance.mockResolvedValue(2n * E18);
+    const big = await buildPlan({ ...base, action: "deposit", amount: "5" });
+    expect(big.blockers).toEqual([{ code: "INSUFFICIENT_BALANCE", message: "You hold less NVDAB than requested" }]);
+    expect(big.steps).toEqual([]);
+
+    const zero = await buildPlan({ ...base, action: "deposit", amount: "0" });
+    expect(zero.blockers.map((x) => x.code)).toEqual(["INSUFFICIENT_BALANCE"]);
+
+    pickMarketFor.mockResolvedValue(null);
+    const noMarket = await buildPlan({ ...base, action: "deposit" });
+    expect(noMarket.blockers.map((x) => x.code)).toEqual(["NO_MARKET"]);
+  });
+});
