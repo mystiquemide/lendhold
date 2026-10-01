@@ -455,3 +455,49 @@ export function latestShowcasePlan(db: Database.Database = getDb()): ShowcasePla
     display: { sharesBefore: plan.display?.sharesBefore ?? null, sharesAfter: plan.display?.sharesAfter ?? null },
   };
 }
+
+export interface ProofRun {
+  runId: string;
+  path: RunPath;
+  action: string;
+  token: string | null;
+  confirmedCount: number;
+  lastTxHash: string;
+  finishedAt: number;
+}
+
+/** Finished runs with at least one confirmed transaction, newest first. */
+export function listProofRuns(limit: number, db: Database.Database = getDb()): ProofRun[] {
+  const rows = db
+    .prepare(
+      `SELECT r.id, r.path, r.action, r.token, r.updated_at,
+              COUNT(s.idx) AS confirmed,
+              (SELECT s2.tx_hash FROM run_steps s2
+                 WHERE s2.run_id = r.id AND s2.status = 'confirmed' AND s2.tx_hash IS NOT NULL AND s2.tx_hash != ''
+                 ORDER BY s2.idx DESC LIMIT 1) AS last_tx
+       FROM runs r JOIN run_steps s ON s.run_id = r.id
+       WHERE r.status = 'done' AND r.action IS NOT NULL
+         AND s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != ''
+       GROUP BY r.id
+       ORDER BY r.updated_at DESC, r.rowid DESC
+       LIMIT ?`,
+    )
+    .all(limit) as {
+    id: string;
+    path: RunPath;
+    action: string;
+    token: string | null;
+    updated_at: number;
+    confirmed: number;
+    last_tx: string;
+  }[];
+  return rows.map((r) => ({
+    runId: r.id,
+    path: r.path,
+    action: r.action,
+    token: r.token,
+    confirmedCount: r.confirmed,
+    lastTxHash: r.last_tx,
+    finishedAt: r.updated_at,
+  }));
+}

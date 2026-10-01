@@ -1,6 +1,7 @@
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { WhoItsFor } from "@/components/landing/WhoItsFor";
+import { Proof } from "@/components/landing/Proof";
 import { TheRisk } from "@/components/landing/TheRisk";
 import { ThreePoints } from "@/components/landing/ThreePoints";
 import { NavBar } from "@/components/ui/NavBar";
@@ -22,6 +23,7 @@ export default function Home() {
         <HowItWorks />
         <WhoItsFor />
         <TheRisk />
+        <Proof />
       </main>
     </>
   );

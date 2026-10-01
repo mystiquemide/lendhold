@@ -8,6 +8,7 @@ import {
   createRun,
   latestShowcasePlan,
   listConfirmedSteps,
+  listProofRuns,
   getRun,
   listRuns,
   openDb,
@@ -153,5 +154,21 @@ describe("landing queries", () => {
       ],
       display: { sharesBefore: 0, sharesAfter: 1.5 },
     });
+  });
+
+  it("lists finished runs with confirmed transactions for proof", () => {
+    const done = createRun({ path: "agent", action: "deposit", token: "0xabc" }, db);
+    upsertStep({ runId: done.id, idx: 0, kind: "approve", status: "confirmed", txHash: "0xa0" }, db);
+    upsertStep({ runId: done.id, idx: 1, kind: "supplyCollateral", status: "confirmed", txHash: "0xa1" }, db);
+    updateRunStatus(done.id, "done", db);
+    const failed = createRun({ path: "browser", action: "borrow" }, db);
+    upsertStep({ runId: failed.id, idx: 0, kind: "approve", status: "confirmed", txHash: "0xb0" }, db);
+    updateRunStatus(failed.id, "failed", db);
+    const empty = createRun({ path: "skill", action: "repay" }, db);
+    updateRunStatus(empty.id, "done", db);
+
+    const rows = listProofRuns(3, db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ runId: done.id, path: "agent", action: "deposit", confirmedCount: 2, lastTxHash: "0xa1" });
   });
 });
