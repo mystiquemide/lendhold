@@ -1,4 +1,5 @@
 import { LogoMark } from "@/components/ui/Logo";
+import { cn } from "@/components/ui/cn";
 import type { ShareExample } from "@/lib/engine/snapshot";
 import { fmt2 } from "./format";
 
@@ -13,14 +14,17 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function PhonePanel({ example: e }: { example: ShareExample }) {
+export function PhonePanel({ example: e, floating = true }: { example: ShareExample; floating?: boolean }) {
   const label = `Lendhold borrow screen for one ${e.name} share: safe to borrow ${fmt2(e.safeBorrow)} ${e.loanSymbol}, risk price $${e.riskPricePerShare === null ? "not applicable" : fmt2(e.riskPricePerShare)}`;
   const riskAt = e.riskPricePerShare === null ? null : Math.min(1, Math.max(0, e.riskPricePerShare / e.sharePrice));
   return (
     <div
       role="img"
       aria-label={label}
-      className="flex w-[300px] flex-col overflow-hidden rounded-[44px] border border-line bg-sheet px-5 py-6 shadow-float md:z-30 md:absolute md:left-[49px] md:bottom-0"
+      className={cn(
+        "flex w-[300px] flex-col overflow-hidden rounded-[44px] border border-line bg-sheet px-5 py-6",
+        floating && "shadow-float md:z-30 md:absolute md:left-[49px] md:bottom-0",
+      )}
     >
       <div aria-hidden="true" className="flex flex-col gap-3">
         <div className="flex items-center gap-1.5 text-ink">

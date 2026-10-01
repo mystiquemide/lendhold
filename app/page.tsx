@@ -1,5 +1,7 @@
 import { BuiltOn } from "@/components/landing/BuiltOn";
 import { Faq } from "@/components/landing/Faq";
+import { FinalCta } from "@/components/landing/FinalCta";
+import { Footer } from "@/components/landing/Footer";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { WhoItsFor } from "@/components/landing/WhoItsFor";
@@ -20,7 +22,9 @@ export default function Home() {
         <TheRisk />
         <BuiltOn />
         <Faq />
+        <FinalCta />
       </main>
+      <Footer />
     </>
   );
 }
