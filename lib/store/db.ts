@@ -501,3 +501,33 @@ export function listProofRuns(limit: number, db: Database.Database = getDb()): P
     finishedAt: r.updated_at,
   }));
 }
+
+export interface RunFilter {
+  address?: string;
+  path?: RunPath;
+}
+
+/** Runs newest first with their steps (and tx hashes), optionally by wallet and path. */
+export function listRunsWithSteps(
+  filter: RunFilter,
+  limit = 20,
+  db: Database.Database = getDb(),
+): RunWithSteps[] {
+  const where: string[] = [];
+  const args: unknown[] = [];
+  if (filter.address) {
+    where.push("lower(address) = lower(?)");
+    args.push(filter.address);
+  }
+  if (filter.path) {
+    where.push("path = ?");
+    args.push(filter.path);
+  }
+  const rows = db
+    .prepare(
+      `SELECT * FROM runs ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY created_at DESC, rowid DESC LIMIT ?`,
+    )
+    .all(...args, limit) as RunRow[];
+  const stepsFor = db.prepare("SELECT * FROM run_steps WHERE run_id = ? ORDER BY idx ASC");
+  return rows.map((r) => ({ ...toRun(r), steps: (stepsFor.all(r.id) as StepRow[]).map(toStep) }));
+}

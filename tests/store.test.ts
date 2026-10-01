@@ -9,6 +9,7 @@ import {
   latestShowcasePlan,
   listConfirmedSteps,
   listProofRuns,
+  listRunsWithSteps,
   getRun,
   listRuns,
   openDb,
@@ -170,5 +171,18 @@ describe("landing queries", () => {
     const rows = listProofRuns(3, db);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ runId: done.id, path: "agent", action: "deposit", confirmedCount: 2, lastTxHash: "0xa1" });
+  });
+
+  it("lists runs with steps, filtered by wallet and path", () => {
+    const a = createRun({ path: "agent", address: "0xAbC" }, db);
+    upsertStep({ runId: a.id, idx: 0, kind: "approve", status: "confirmed", txHash: "0xt0" }, db);
+    createRun({ path: "browser", address: "0xabc" }, db);
+    createRun({ path: "agent", address: "0xdef" }, db);
+
+    const rows = listRunsWithSteps({ address: "0xabc", path: "agent" }, 10, db);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe(a.id);
+    expect(rows[0].steps[0]).toMatchObject({ kind: "approve", txHash: "0xt0" });
+    expect(listRunsWithSteps({}, 10, db)).toHaveLength(3);
   });
 });
