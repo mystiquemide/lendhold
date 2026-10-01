@@ -1,3 +1,4 @@
+import { BuiltOn } from "@/components/landing/BuiltOn";
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { WhoItsFor } from "@/components/landing/WhoItsFor";
@@ -24,6 +25,7 @@ export default function Home() {
         <WhoItsFor />
         <TheRisk />
         <Proof />
+        <BuiltOn />
       </main>
     </>
   );
