@@ -29,7 +29,15 @@ export function Hero() {
           <HeroStrip />
         </Suspense>
       </div>
-      <HeroCluster />
+      <Suspense
+        fallback={
+          <div aria-hidden="true" className="cluster-outer mt-16">
+            <div className="cluster-frame min-h-[517px] md:min-h-0" />
+          </div>
+        }
+      >
+        <HeroCluster />
+      </Suspense>
     </section>
   );
 }

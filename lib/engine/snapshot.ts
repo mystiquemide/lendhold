@@ -64,6 +64,11 @@ export function safePercent(lltv: bigint, buffer: bigint): number {
   return Number((lltv * buffer * 100n) / (WAD * BPS));
 }
 
+/** The snapshot and the share example need the same reads, so a cold landing load makes them once. */
+function landingInputs(ticker: string) {
+  return cached(`inputs:${ticker.toUpperCase()}`, 30_000, () => loadInputs(ticker));
+}
+
 async function loadInputs(ticker: string) {
   const token = await findBStockByTicker(ticker);
   if (!token) throw new AppError("UNKNOWN_TICKER", `No bStock for ${ticker}`, 404);
@@ -97,7 +102,7 @@ export function getStockSnapshot(ticker: string): Promise<StockSnapshot> {
 }
 
 async function loadSnapshot(ticker: string): Promise<StockSnapshot> {
-  const { token, price, session, asset, market, marketOpen, sizingSession } = await loadInputs(ticker);
+  const { token, price, session, asset, market, marketOpen, sizingSession } = await landingInputs(ticker);
   if (!price || price.referencePrice === null) {
     throw new AppError("NO_PRICE", `No reference price for ${token.ticker}`, 502);
   }
@@ -119,7 +124,7 @@ export function getShareExample(ticker: string): Promise<ShareExample> {
 }
 
 async function loadShareExample(ticker: string): Promise<ShareExample> {
-  const { token, market, chainState, marketOpen, sizingSession } = await loadInputs(ticker);
+  const { token, market, chainState, marketOpen, sizingSession } = await landingInputs(ticker);
   const { params } = market;
   const { loanDecimals, loanPrice, collateralPrice, state, availableLoan } = chainState;
 

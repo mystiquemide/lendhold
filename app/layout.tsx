@@ -14,9 +14,23 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+
+const description = "Borrow against your tokenized stocks on BNB Chain. Keep them.";
+
 export const metadata: Metadata = {
-  title: "Lendhold",
-  description: "Borrow against your tokenized stocks on BNB Chain. Keep them.",
+  metadataBase: new URL(siteUrl),
+  title: { default: "Lendhold: borrow against your stocks, keep them", template: "%s | Lendhold" },
+  description,
+  openGraph: {
+    type: "website",
+    siteName: "Lendhold",
+    title: "Lendhold: borrow against your stocks, keep them",
+    description,
+  },
+  twitter: { card: "summary_large_image", title: "Lendhold: borrow against your stocks, keep them", description },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -34,7 +34,7 @@ export function StepsPanel({ rows }: { rows: ConfirmedStep[] }) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`View transaction ${short} on BscScan`}
-                  className="inline-flex items-center gap-1 font-mono text-[13px] leading-5 text-ink hover:underline"
+                  className="inline-flex min-h-6 items-center gap-1 py-0.5 font-mono text-[13px] leading-5 text-ink hover:underline"
                 >
                   {short}
                   <ExternalLink size={14} strokeWidth={1.75} aria-hidden="true" />

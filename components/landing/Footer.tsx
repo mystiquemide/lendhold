@@ -12,9 +12,10 @@ const BUILT_ON = [
   { href: "https://lista.org", label: "Lista Lending" },
   { href: "https://web3.binance.com", label: "Binance Web3 Wallet" },
   { href: "https://www.bnbchain.org", label: "BNB Chain" },
+  { href: "https://ondo.finance", label: "Ondo" },
 ];
 
-const linkClass = "text-[15px] leading-6 text-[#c9c9c9] transition-colors duration-150 hover:text-sheet";
+const linkClass = "inline-block py-1 text-[15px] leading-6 text-[#c9c9c9] transition-colors duration-150 hover:text-sheet";
 
 export function Footer() {
   return (
@@ -29,7 +30,7 @@ export function Footer() {
           </div>
           <nav aria-label="Product">
             <h2 className="mb-4 text-sm leading-none uppercase tracking-[0.1em] text-[#9a9a9a]">Product</h2>
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col">
               {PRODUCT.map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className={linkClass}>
@@ -41,7 +42,7 @@ export function Footer() {
           </nav>
           <nav aria-label="Built on">
             <h2 className="mb-4 text-sm leading-none uppercase tracking-[0.1em] text-[#9a9a9a]">Built on</h2>
-            <ul className="flex flex-col gap-2">
+            <ul className="flex flex-col">
               {BUILT_ON.map((l) => (
                 <li key={l.href}>
                   <a href={l.href} target="_blank" rel="noopener noreferrer" className={linkClass}>
