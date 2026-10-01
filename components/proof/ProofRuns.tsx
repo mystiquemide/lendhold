@@ -1,10 +1,9 @@
 import { connection } from "next/server";
 import { CircleCheck } from "lucide-react";
 import { Pill } from "@/components/ui/Pill";
-import { TextLink } from "@/components/ui/TextLink";
 import { findStockToken } from "@/lib/engine/tokens";
 import { listProofRuns, type ProofRun } from "@/lib/store/db";
-import { PATH_LABELS, shortHex, utcDate } from "./format";
+import { PATH_LABELS, shortHex, utcDate } from "@/components/landing/format";
 
 async function symbolFor(token: string | null): Promise<string | null> {
   if (!token) return null;
@@ -21,39 +20,45 @@ async function actionLabel(run: ProofRun): Promise<string> {
   return symbol ? `${verb} ${symbol}` : verb;
 }
 
-export async function Proof() {
+export async function ProofRuns() {
   await connection();
   let runs: ProofRun[];
   try {
-    runs = listProofRuns(3);
+    runs = listProofRuns(100);
   } catch (err) {
     console.error("proof runs unavailable", err);
-    return null;
+    runs = [];
   }
-  if (runs.length === 0) return null;
   const labels = await Promise.all(runs.map(actionLabel));
 
   return (
-    <section id="proof" aria-labelledby="proof-title" className="scroll-mt-24 bg-sheet">
-      <div className="mx-auto max-w-[1224px] px-5 pb-12 md:px-6 md:pb-24">
+    <main className="mx-auto w-full max-w-[1224px] px-5 pb-16 pt-32 md:px-6 md:pb-24 md:pt-40">
         <div className="mb-8 flex max-w-[800px] flex-col gap-4 md:mb-12">
           <p className="text-sm leading-none uppercase tracking-[0.1em] text-[#333333]">Proof</p>
-          <h2
-            id="proof-title"
+          <h1
             className="text-balance text-[34px] leading-[38px] tracking-[-0.015em] text-ink md:text-[44px] md:leading-[48px] lg:text-[56px] lg:leading-[1.05]"
           >
             Every run is on BNB Chain
-          </h2>
+          </h1>
+          <p className="max-w-[640px] text-pretty text-base leading-6 text-body md:text-lg md:leading-normal">
+            Every finished Lendhold run with its confirmed transactions. Each step counts only after we check it on-chain:
+            it succeeded, came from the right wallet and called the planned contract.
+          </p>
         </div>
-        <ul className="grid gap-3 md:grid-cols-3">
+        {runs.length === 0 && (
+          <p className="rounded-3xl bg-sheet p-6 text-base leading-6 text-body md:p-8">
+            No finished runs yet. They show up here as soon as one is confirmed on BNB Chain.
+          </p>
+        )}
+        <ul className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {runs.map((run, i) => {
             const tx = shortHex(run.lastTxHash);
             return (
-              <li key={run.runId} className="flex flex-col gap-6 rounded-3xl bg-canvas p-6 md:p-8">
+              <li key={run.runId} className="flex flex-col gap-6 rounded-3xl bg-sheet p-6 md:p-8">
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-[13px] leading-5 text-muted">{utcDate(run.finishedAt)}</p>
-                    <span className="rounded-pill bg-sheet px-3 py-1 text-[13px] leading-5 text-ink">
+                    <span className="rounded-pill bg-canvas px-3 py-1 text-[13px] leading-5 text-ink">
                       {PATH_LABELS[run.path] ?? run.path}
                     </span>
                   </div>
@@ -65,6 +70,7 @@ export async function Proof() {
                 </div>
                 <Pill
                   variant="secondary"
+                  on="white"
                   size="md"
                   href={`https://bscscan.com/tx/${run.lastTxHash}`}
                   external
@@ -77,10 +83,6 @@ export async function Proof() {
             );
           })}
         </ul>
-        <TextLink href="/runs" className="mt-8">
-          See every run
-        </TextLink>
-      </div>
-    </section>
+    </main>
   );
 }
