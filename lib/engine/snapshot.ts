@@ -1,5 +1,5 @@
 import "server-only";
-import { cached } from "@/lib/cache";
+import { cached, withLastGood } from "@/lib/cache";
 import { AppError } from "@/lib/errors";
 import { getAssetStatus, getMarketSession, getRwaPrices, listRwaTokens } from "@/lib/binance/rwa";
 import { getQuote } from "@/lib/binance/trading";
@@ -92,7 +92,8 @@ async function loadInputs(ticker: string) {
 }
 
 export function getStockSnapshot(ticker: string): Promise<StockSnapshot> {
-  return cached(`snapshot:${ticker.toUpperCase()}`, SNAPSHOT_TTL_MS, () => loadSnapshot(ticker));
+  const key = `snapshot:${ticker.toUpperCase()}`;
+  return withLastGood(key, () => cached(key, SNAPSHOT_TTL_MS, () => loadSnapshot(ticker)));
 }
 
 async function loadSnapshot(ticker: string): Promise<StockSnapshot> {
@@ -113,7 +114,8 @@ async function loadSnapshot(ticker: string): Promise<StockSnapshot> {
 }
 
 export function getShareExample(ticker: string): Promise<ShareExample> {
-  return cached(`example:${ticker.toUpperCase()}`, SNAPSHOT_TTL_MS, () => loadShareExample(ticker));
+  const key = `example:${ticker.toUpperCase()}`;
+  return withLastGood(key, () => cached(key, SNAPSHOT_TTL_MS, () => loadShareExample(ticker)));
 }
 
 async function loadShareExample(ticker: string): Promise<ShareExample> {
@@ -174,7 +176,8 @@ export interface ConversionExample {
 const QUOTE_WALLET = "0x000000000000000000000000000000000000dEaD";
 
 export function getConversionExample(ticker: string): Promise<ConversionExample | null> {
-  return cached(`conversion:${ticker.toUpperCase()}`, SNAPSHOT_TTL_MS, () => loadConversionExample(ticker));
+  const key = `conversion:${ticker.toUpperCase()}`;
+  return withLastGood(key, () => cached(key, SNAPSHOT_TTL_MS, () => loadConversionExample(ticker)));
 }
 
 /** Quotes one Ondo token to USDT, then USDT to the matching bStock. Null when either token is not trading or a leg has no route. */
