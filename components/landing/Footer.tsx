@@ -58,7 +58,6 @@ export function Footer() {
           available to US persons or in restricted regions. Borrowing against assets that can fall in price can lead to
           liquidation.
         </p>
-        <p className="mt-4 text-[13px] leading-5 text-[#9a9a9a]">Built for BNB Hack: Tokenized Stocks Edition.</p>
       </div>
     </footer>
   );
