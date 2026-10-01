@@ -1,6 +1,9 @@
 import { Suspense } from "react";
 import { Pill } from "@/components/ui/Pill";
+import { AgentPanel } from "./AgentPanel";
+import { ConvertPanel } from "./ConvertPanel";
 import { ReviewPanel } from "./ReviewPanel";
+import { ShowcaseHalf } from "./ShowcaseHalf";
 
 export function HowItWorks() {
   return (
@@ -33,6 +36,28 @@ export function HowItWorks() {
               <ReviewPanel />
             </Suspense>
           </article>
+          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+            <ShowcaseHalf
+              title="Hold Ondo tokens?"
+              body="We convert them to the matching bStock first and show the exact share cost before you confirm."
+              cta="Check my wallet"
+              href="/app"
+            >
+              <Suspense fallback={null}>
+                <ConvertPanel />
+              </Suspense>
+            </ShowcaseHalf>
+            <ShowcaseHalf
+              title="Use it from your AI agent"
+              body="Your Binance Agentic Wallet can run the same plan. It shows every step and waits for your yes."
+              cta="Set up your agent"
+              href="/skill"
+            >
+              <Suspense fallback={null}>
+                <AgentPanel />
+              </Suspense>
+            </ShowcaseHalf>
+          </div>
         </div>
       </div>
     </section>

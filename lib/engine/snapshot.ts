@@ -1,13 +1,14 @@
 import "server-only";
 import { cached } from "@/lib/cache";
 import { AppError } from "@/lib/errors";
-import { getAssetStatus, getMarketSession, getRwaPrices } from "@/lib/binance/rwa";
+import { getAssetStatus, getMarketSession, getRwaPrices, listRwaTokens } from "@/lib/binance/rwa";
+import { getQuote } from "@/lib/binance/trading";
 import { aprFromRatePerSecond, borrowRatePerSecond, readMinLoan } from "@/lib/lista/chain";
 import { getEligibleMarkets } from "@/lib/lista/markets";
 import { loadChainStates, selectMarket, type MarketChainState } from "./market-select";
 import { computeRisk, toUnits, type Health } from "./risk";
 import { bufferBps, computeSizing, minLoanFloor } from "./sizing";
-import { findBStockByTicker } from "./tokens";
+import { findBStockByTicker, USDT } from "./tokens";
 
 export interface StockSnapshot {
   ticker: string;
@@ -42,6 +43,11 @@ export interface ShareExample {
   marketOpen: boolean;
 }
 
+/** Landing reads share one status per token for a short while. The planner keeps reading it fresh. */
+function landingStatus(address: string) {
+  return cached(`status:${address.toLowerCase()}`, 30_000, () => getAssetStatus(address));
+}
+
 export function stripIssuerSuffix(name: string): string {
   return name.replace(/\s*\(bStocks\)\s*$/i, "").trim();
 }
@@ -65,7 +71,7 @@ async function loadInputs(ticker: string) {
   const [prices, session, asset, markets] = await Promise.all([
     getRwaPrices([token.address]),
     getMarketSession(),
-    getAssetStatus(token.address),
+    landingStatus(token.address),
     getEligibleMarkets(token),
   ]);
   const chain = await loadChainStates(markets);
@@ -151,5 +157,58 @@ async function loadShareExample(ticker: string): Promise<ShareExample> {
     cushionPct: risk.cushion === null ? null : risk.cushion * 100,
     health: risk.health,
     marketOpen,
+  };
+}
+
+export interface ConversionExample {
+  onSymbol: string;
+  bSymbol: string;
+  /** Shares held before, for one Ondo token. */
+  sharesBefore: number;
+  /** Shares held after both swaps, at the quoted amounts. */
+  sharesAfter: number;
+  costPct: number;
+}
+
+/** Any address works for a quote. Nothing is signed or sent. */
+const QUOTE_WALLET = "0x000000000000000000000000000000000000dEaD";
+
+export function getConversionExample(ticker: string): Promise<ConversionExample | null> {
+  return cached(`conversion:${ticker.toUpperCase()}`, SNAPSHOT_TTL_MS, () => loadConversionExample(ticker));
+}
+
+/** Quotes one Ondo token to USDT, then USDT to the matching bStock. Null when either token is not trading or a leg has no route. */
+async function loadConversionExample(ticker: string): Promise<ConversionExample | null> {
+  const [ondo, bstock] = await Promise.all([
+    listRwaTokens("ondo").then((list) => list.find((t) => t.ticker.toUpperCase() === ticker.toUpperCase()) ?? null),
+    findBStockByTicker(ticker),
+  ]);
+  if (!ondo || !bstock) return null;
+  const statuses = await Promise.all([landingStatus(ondo.address), landingStatus(bstock.address)]);
+  if (statuses.some((st) => st.openState !== true || (st.reasonCode ?? "").toUpperCase() !== "TRADING")) return null;
+
+  const leg1 = await getQuote({
+    from: ondo.address as `0x${string}`,
+    to: USDT,
+    amount: 10n ** BigInt(ondo.decimals),
+    userWalletAddress: QUOTE_WALLET,
+  });
+  if (!leg1 || leg1.toAmount === 0n) return null;
+  const leg2 = await getQuote({
+    from: USDT,
+    to: bstock.address as `0x${string}`,
+    amount: leg1.toAmount,
+    userWalletAddress: QUOTE_WALLET,
+  });
+  if (!leg2 || leg2.toAmount === 0n) return null;
+
+  const sharesBefore = ondo.ratio;
+  const sharesAfter = toUnits(leg2.toAmount, bstock.decimals) * bstock.ratio;
+  return {
+    onSymbol: ondo.symbol,
+    bSymbol: bstock.symbol,
+    sharesBefore,
+    sharesAfter,
+    costPct: (1 - sharesAfter / sharesBefore) * 100,
   };
 }

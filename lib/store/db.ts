@@ -393,17 +393,22 @@ function parsePlan(json: string | null): PlanJson | null {
   }
 }
 
-/** Confirmed steps that have a transaction hash, newest first. */
-export function listConfirmedSteps(limit: number, db: Database.Database = getDb()): ConfirmedStep[] {
+/** Confirmed steps that have a transaction hash, newest first, optionally limited to some run paths. */
+export function listConfirmedSteps(
+  limit: number,
+  db: Database.Database = getDb(),
+  paths?: readonly RunPath[],
+): ConfirmedStep[] {
+  const pathFilter = paths && paths.length > 0 ? `AND r.path IN (${paths.map(() => "?").join(", ")})` : "";
   const rows = db
     .prepare(
       `SELECT s.run_id, s.idx, s.kind, s.tx_hash, s.updated_at, r.path, r.action, r.address, r.plan_json
        FROM run_steps s JOIN runs r ON r.id = s.run_id
-       WHERE s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != ''
+       WHERE s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != '' ${pathFilter}
        ORDER BY s.updated_at DESC, s.rowid DESC
        LIMIT ?`,
     )
-    .all(limit) as {
+    .all(...(paths ?? []), limit) as {
     run_id: string;
     idx: number;
     kind: string | null;
