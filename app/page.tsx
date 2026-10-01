@@ -1,5 +1,6 @@
 import { Hero } from "@/components/landing/Hero";
 import { HowItWorks } from "@/components/landing/HowItWorks";
+import { WhoItsFor } from "@/components/landing/WhoItsFor";
 import { ThreePoints } from "@/components/landing/ThreePoints";
 import { NavBar } from "@/components/ui/NavBar";
 
@@ -18,6 +19,7 @@ export default function Home() {
         <Hero />
         <ThreePoints />
         <HowItWorks />
+        <WhoItsFor />
       </main>
     </>
   );
