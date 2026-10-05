@@ -13,7 +13,7 @@ The skill lives in [`lendhold/`](./lendhold): `SKILL.md` plus `references/` for 
 - A running Lendhold server. Set `LENDHOLD_API` to its URL:
 
   ```bash
-  export LENDHOLD_API=<the deployed Lendhold URL>
+  export LENDHOLD_API=https://your-lendhold-server.example
   ```
 
 ## Install
@@ -21,7 +21,7 @@ The skill lives in [`lendhold/`](./lendhold): `SKILL.md` plus `references/` for 
 With the Skills CLI, the same way Binance Skills Hub is installed:
 
 ```bash
-npx skills add <path-or-git-url-of-this-repo> --skill lendhold
+npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
 ```
 
 Or copy the folder into your tool's skills directory, for example for Claude Code:

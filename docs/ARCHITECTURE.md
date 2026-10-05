@@ -7,7 +7,7 @@ Lendhold borrows stablecoins against tokenized US stocks on BNB Smart Chain (BSC
 ```
                   +---------------------------------------------+
 Browser  -------> |  Next.js app (App Router)                    |
-(wagmi/viem)      |                                             |
+(EIP-6963/viem)   |                                             |
    |              |  UI routes        /, /app, /app/borrow, ... |
    |              |  API routes       /api/*  (server only)     |
    |              |       |                                     |
@@ -37,7 +37,7 @@ Browser  -------> |  Next.js app (App Router)                    |
 | Layer | Choice | Reason |
 |---|---|---|
 | App | Next.js (App Router), TypeScript, Tailwind CSS | One deployable for UI and API routes |
-| Wallet (browser) | wagmi + viem, injected connector (Binance Wallet extension); WalletConnect only if `NEXT_PUBLIC_WC_PROJECT_ID` is set | Standard BSC wallet support |
+| Wallet (browser) | EIP-6963 wallet discovery (Binance Wallet listed first) with viem for encoding and reads | Works with any injected BSC wallet, no wallet SDK |
 | Chain reads | viem public client on BSC RPC | Moolah state, oracle prices, ERC-20 balances and allowances |
 | Binance Web3 API | `@binance-web3/wallet` 12.3.0 (pinned) | Official connector with request signing |
 | Agent execution | `@binance/agentic-wallet` CLI (`baw`), called from the server with `child_process` | Required for Agentic Wallet execution |
@@ -183,12 +183,12 @@ Buy first stock: `approve` USDT (if needed), `swap` USDT to bStock.
 
 | | Browser executor | Agent executor |
 |---|---|---|
-| Runs where | Client (React hook) | Server (`lib/agent`) |
-| Signs with | Connected wallet (wagmi `sendTransaction`, `signTypedData` for RFQ) | Agentic Wallet via `baw` |
-| Swaps | Trading API `buildSwapTransaction` (and RFQ signing when required) | `baw market-order swap` |
-| Contract calls | wagmi `sendTransaction` with engine calldata | `baw contract-call preview` then `execute` |
+| Runs where | Client (`/app/run/[id]`) | Server (`lib/agent`) |
+| Signs with | Connected wallet (`eth_sendTransaction`) | Agentic Wallet via `baw` |
+| Swaps | Trading API `buildSwapTransaction` on-chain routes. RFQ routes stop the step with a reason | `baw market-order swap` |
+| Contract calls | `eth_sendTransaction` with engine calldata, simulated first | `baw contract-call preview` then `execute` |
 | Confirmation | Wallet prompt per step after the user confirms the review | Operator confirms the review in the UI; the server then runs the steps |
-| Status updates | Client posts step results to `/api/runs/:id/steps` | Written directly to the run store |
+| Status updates | Client posts each hash to `/api/runs/:id/steps`. Unmined hashes are stored as sent, so a reload waits instead of resending | Written directly to the run store |
 
 Both write the same run record, so loan home and history work for either path.
 
@@ -252,7 +252,7 @@ Run status: `planned`, `running`, `done`, `failed`, `stopped`. Step status: `pen
 | No eligible market or no liquidity | Lista market list and on-chain checks | "Not available to borrow right now" |
 | No conversion route | Trading API returns `null` | Conversion option hidden with reason |
 | Simulation failed | Transaction API | Run stops before sending, reason shown |
-| Wallet rejected | wagmi | Run stops, can retry from the failed step |
+| Wallet rejected | Wallet error code 4001 | Run stops, can retry from that step |
 | Agent session missing or Developer Mode off | `baw wallet status`, `baw wallet settings` | Operator prompt to sign in or enable Developer Mode |
 | Agent quota exhausted | `baw wallet settings` | Run blocked with remaining quota shown |
 

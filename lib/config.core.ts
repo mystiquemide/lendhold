@@ -33,7 +33,6 @@ const schema = z.object({
   BAW_BIN: withDefault("baw"),
   OPENAI_API_KEY: optionalString,
   OPENAI_MODEL: withDefault("gpt-4.1-mini"),
-  NEXT_PUBLIC_WC_PROJECT_ID: optionalString,
   DATABASE_PATH: withDefault("./data/lendhold.db"),
 });
 
