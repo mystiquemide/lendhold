@@ -9,11 +9,12 @@ import { WhoItsFor } from "@/components/landing/WhoItsFor";
 import { TheRisk } from "@/components/landing/TheRisk";
 import { ThreePoints } from "@/components/landing/ThreePoints";
 import { NAV_CTA, NAV_LINKS } from "@/components/landing/nav-links";
+import { MotionRoot, Reveal } from "@/components/motion/Motion";
 import { NavBar } from "@/components/ui/NavBar";
 
 export default function Home() {
   return (
-    <>
+    <MotionRoot>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-pill focus:bg-sheet focus:px-5 focus:py-3 focus:text-ink"
@@ -24,18 +25,30 @@ export default function Home() {
       <main id="main">
         <Hero />
         <ThreePoints />
-        <HowItWorks />
-        <WhoItsFor />
-        <Suspense fallback={null}>
-          <TheRisk />
-        </Suspense>
-        <BuiltOn />
-        <Suspense fallback={null}>
-          <Faq />
-        </Suspense>
-        <FinalCta />
+        <Reveal>
+          <HowItWorks />
+        </Reveal>
+        <Reveal>
+          <WhoItsFor />
+        </Reveal>
+        <Reveal>
+          <Suspense fallback={null}>
+            <TheRisk />
+          </Suspense>
+        </Reveal>
+        <Reveal>
+          <BuiltOn />
+        </Reveal>
+        <Reveal>
+          <Suspense fallback={null}>
+            <Faq />
+          </Suspense>
+        </Reveal>
+        <Reveal>
+          <FinalCta />
+        </Reveal>
       </main>
       <Footer />
-    </>
+    </MotionRoot>
   );
 }

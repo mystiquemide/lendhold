@@ -89,11 +89,34 @@ body {
     height: calc(600px * min(1, tan(atan2(100cqw, 1224px))));
   }
 
+  /* The hero cards drift slowly once they've settled, each on its own beat. */
+  .cluster-stage > * {
+    animation: cluster-drift 9s ease-in-out 1.8s infinite;
+  }
+  .cluster-stage > :nth-child(2) {
+    animation-duration: 11s;
+    animation-delay: 2.4s;
+  }
+  .cluster-stage > :nth-child(3) {
+    animation-duration: 10s;
+    animation-delay: 3s;
+  }
+
   .cluster-stage {
     position: relative;
     width: 1224px;
     height: 600px;
     transform-origin: top left;
     scale: min(1, tan(atan2(100cqw, 1224px)));
+  }
+}
+
+@keyframes cluster-drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -10px;
   }
 }
