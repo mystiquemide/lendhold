@@ -13,17 +13,26 @@ import {
 
 const WALLET_KEY = "lendhold:wallet";
 const ELIGIBLE_KEY = "lendhold:eligible";
-/** Dev only: `/app?as=0x…` reads that address's balances without a wallet. Nothing can be signed. */
+/**
+ * Read-only views, which show real balances and plans but can't sign anything:
+ * `/app?sample=1` opens the sample wallet everywhere, and in development `/app?as=0x…` opens any address.
+ */
 const VIEW_AS_KEY = "lendhold:view-as";
 const VIEW_AS_ENABLED = process.env.NODE_ENV === "development";
+export const SAMPLE_WALLET = getAddress(
+  process.env.NEXT_PUBLIC_SAMPLE_WALLET?.trim() || "0xAbf039f2DC31084F5E0713708C96068126a043e9",
+);
 
 function readViewAs(): Address | null {
-  if (!VIEW_AS_ENABLED) return null;
   try {
-    const param = new URLSearchParams(window.location.search).get("as");
+    const q = new URLSearchParams(window.location.search);
+    const param = q.get("sample") ? SAMPLE_WALLET : VIEW_AS_ENABLED ? q.get("as") : null;
     if (param) window.sessionStorage.setItem(VIEW_AS_KEY, param);
     const stored = param ?? window.sessionStorage.getItem(VIEW_AS_KEY);
-    return stored ? getAddress(stored) : null;
+    if (!stored) return null;
+    const address = getAddress(stored);
+    // Outside development, a stored address only counts if it is the sample wallet.
+    return VIEW_AS_ENABLED || address === SAMPLE_WALLET ? address : null;
   } catch {
     return null;
   }
@@ -57,6 +66,8 @@ interface WalletState {
   eligible: boolean;
   connecting: string | null;
   error: string | null;
+  /** True for the sample wallet and dev views: balances are real, signing is off. */
+  readOnly: boolean;
   connect(w: WalletDetail): Promise<void>;
   disconnect(): void;
   switchToBsc(): Promise<void>;
@@ -201,6 +212,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       eligible: viewAs !== null || eligible,
       connecting,
       error,
+      readOnly: viewAs !== null,
       connect,
       disconnect,
       switchToBsc,

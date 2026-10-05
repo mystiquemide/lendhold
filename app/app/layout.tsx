@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppBar } from "@/components/ui/AppBar";
 import { WalletChip } from "@/components/app/WalletChip";
+import { ReadOnlyBanner } from "@/components/app/ReadOnlyBanner";
 import { WalletProvider } from "@/components/app/WalletProvider";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export default function AppLayout({ children }: LayoutProps<"/app">) {
     <WalletProvider>
       <AppBar right={<WalletChip />} />
       <main id="main" className="mx-auto w-full max-w-[480px] px-4 lg:max-w-[1040px] pb-16 pt-8">
+        <ReadOnlyBanner />
         {children}
       </main>
     </WalletProvider>

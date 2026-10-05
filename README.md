@@ -9,6 +9,11 @@ Live app: [lendhold.midelabs.xyz](https://lendhold.midelabs.xyz) · Demo video: 
 ## The problem
 
 People outside the US who hold US stocks and need dollars usually have two options: sell the position, or go without.
+
+> "Tokenized stocks as collateral to get stablecoins. Is there such a project now?" ([r/defi](https://www.reddit.com/r/defi/comments/1lpbisu/))
+
+> "the ibkr interest charged is waaaaaaaay better than anything I could access at my country of residence." A non-US investor planning a margin loan instead of selling ([r/interactivebrokers](https://www.reddit.com/r/interactivebrokers/comments/1w5nvfw/), Sep 2026)
+
 On BNB Chain, 618 stock tokens are live across three issuers: 442 Ondo, 130 xStocks and 46 bStocks (Binance Web3 RWA API, 5 Oct 2026).
 Only bStocks are accepted as collateral on BSC lending markets, so most holders have no way to borrow against what they own.
 Where borrowing does exist, on Lista Lending, it runs through interfaces built for DeFi users: approve, deposit, borrow and swap, one step at a time.
@@ -16,7 +21,7 @@ Lendhold turns that into one reviewed plan, signed from your own wallet.
 
 ## Try it in 60 seconds
 
-1. Open [lendhold.midelabs.xyz/app](https://lendhold.midelabs.xyz/app).
+1. Open [lendhold.midelabs.xyz/app](https://lendhold.midelabs.xyz/app). No stock tokens? [Explore a sample wallet](https://lendhold.midelabs.xyz/app?sample=1): real balances and plans, read only, nothing can be signed.
 2. Confirm you're eligible to hold tokenized stocks, then connect a wallet on BNB Chain. Tokenized stocks aren't available to US persons or in other restricted regions.
 3. Your stock tokens are listed with their value. Tap Borrow on a bStock such as NVDAB or TSLAB.
 4. See the safe amount, the most you can borrow, Lista's minimum loan and the price where risk starts.

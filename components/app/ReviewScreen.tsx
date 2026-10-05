@@ -159,7 +159,7 @@ function useCountdown(until: number | null) {
 }
 
 export function ReviewScreen({ planId, amount, receive }: { planId: string; amount: string | null; receive: string | null }) {
-  const { address } = useWallet();
+  const { address, readOnly } = useWallet();
   const router = useRouter();
   const [res, setRes] = useState<ReviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -223,7 +223,7 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
   const notMine = address && plan.address.toLowerCase() !== address.toLowerCase();
   const checks = new Map((review?.steps ?? []).map((s) => [s.idx, s]));
   const problems = review && !review.ok ? review.problems : [];
-  const canConfirm = !expired && !notMine && !!review?.ok && plan.steps.length > 0;
+  const canConfirm = !readOnly && !expired && !notMine && !!review?.ok && plan.steps.length > 0;
   const backHref =
     plan.action === "buy"
       ? `/app/buy/${plan.token}`
@@ -342,6 +342,7 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
               <Pill variant="primary" fullWidth disabled={!canConfirm} onClick={() => router.push(`/app/run/new?plan=${plan.id}`)}>
                 {CONFIRM_LABEL[plan.action] ?? "Confirm"}
               </Pill>
+              {readOnly && <p className="text-[13px] leading-5 text-muted">This is a sample wallet. Connect your own to confirm.</p>}
               {countdown && (
                 <p className="num text-[13px] leading-5 text-muted" aria-live="off">
                   Plan valid for {countdown.text}

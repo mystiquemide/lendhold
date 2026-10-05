@@ -64,6 +64,9 @@ export function ConnectPanel() {
             <ShieldCheck size={16} strokeWidth={1.75} aria-hidden="true" className="-mt-0.5 mr-1.5 inline-block" />
             Connecting only reads your balances. Nothing moves without your yes.
           </p>
+          <a href="/app?sample=1" className="min-h-11 text-[15px] leading-6 text-ink underline underline-offset-4">
+            No stock tokens? Explore a sample wallet
+          </a>
         </div>
         <div className="flex w-full flex-col items-center gap-3 border-t border-line pt-6">
           <p className="text-[13px] leading-5 text-muted">Works best with</p>
