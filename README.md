@@ -98,3 +98,7 @@ cp .env.example .env.local   # add BINANCE_WEB3_API_KEY and BINANCE_WEB3_API_SEC
 npm test
 npm run dev
 ```
+
+## License
+
+[MIT](LICENSE)
