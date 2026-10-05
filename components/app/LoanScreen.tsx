@@ -315,7 +315,7 @@ function ActionSheet({ kind, pos, onClose }: { kind: SheetKind | null; pos: Posi
               value={all && kind === "repay" ? fmtAmount(debt) : amount}
               placeholder="0.00"
               onChange={(e) => fill(e.target.value.replace(",", ".").replace(/[^\d.]/g, ""))}
-              className="num w-full min-w-0 bg-transparent text-[28px] leading-9 tracking-[-0.02em] text-ink outline-none placeholder:text-line"
+              className="num w-full min-w-0 bg-transparent text-[28px] leading-9 tracking-[-0.02em] text-ink outline-none placeholder:text-line focus-visible:outline-none"
             />
             <span className="shrink-0 text-base text-muted">{unit}</span>
           </div>

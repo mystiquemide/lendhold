@@ -145,7 +145,7 @@ export function BuyScreen({ token }: { token: string }) {
               placeholder="0.00"
               aria-invalid={short}
               onChange={(e) => setAmount(e.target.value.replace(",", ".").replace(/[^\d.]/g, ""))}
-              className="num w-full min-w-0 bg-transparent text-[36px] leading-[44px] tracking-[-0.02em] text-ink outline-none placeholder:text-line"
+              className="num w-full min-w-0 bg-transparent text-[36px] leading-[44px] tracking-[-0.02em] text-ink outline-none placeholder:text-line focus-visible:outline-none"
             />
             {quoting && <LoaderCircle size={18} strokeWidth={1.75} className="shrink-0 animate-spin text-muted" aria-label="Updating" />}
           </div>
@@ -153,9 +153,9 @@ export function BuyScreen({ token }: { token: string }) {
         </div>
 
         <div>
-          <Row label="You get about" value={d?.sharesAfter != null ? `${fmtShares(d.sharesAfter)} shares` : "–"} />
-          <Row label="Cost" value={d?.conversionCostPct != null ? `${Math.max(d.conversionCostPct, 0).toFixed(2)}%` : "–"} />
-          <Row label="Your USDT" value={usdt != null ? fmtAmount(usdt) : "–"} />
+          <Row label="You get about" value={d?.sharesAfter != null ? `${fmtShares(d.sharesAfter)} shares` : "-"} />
+          <Row label="Cost" value={d?.conversionCostPct != null ? `${Math.max(d.conversionCostPct, 0).toFixed(2)}%` : "-"} />
+          <Row label="Your USDT" value={usdt != null ? fmtAmount(usdt) : "-"} />
         </div>
 
         {blockers.map((b) => (

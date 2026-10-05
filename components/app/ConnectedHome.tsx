@@ -82,6 +82,7 @@ export function ConnectedHome() {
 
   if (error) {
     return (
+      <div className="mx-auto w-full max-w-[560px]">
       <Notice
         tone="risk"
         action={
@@ -92,12 +93,13 @@ export function ConnectedHome() {
       >
         {error}
       </Notice>
+      </div>
     );
   }
 
   if (!holdings || !positions) {
     return (
-      <div className="grid gap-3 lg:grid-cols-2" aria-busy="true" aria-label="Loading your stocks">
+      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-busy="true" aria-label="Loading your stocks">
         <h1 className="sr-only">Your stocks</h1>
         {[0, 1, 2].map((i) => (
           <Skeleton key={i} className="h-[88px] rounded-panel bg-sheet!" />
@@ -113,7 +115,7 @@ export function ConnectedHome() {
       <h1 className="sr-only">Your loans and stocks</h1>
       {positions.length > 0 && (
         <Section title="Your loans">
-          <ul className="grid gap-2 lg:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {positions.map((p) => {
               const h = HEALTH[p.risk.health];
               return (
@@ -151,7 +153,7 @@ export function ConnectedHome() {
             </p>
           </Panel>
         ) : (
-          <ul className="grid gap-2 lg:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {sorted.map((h) => {
               const canBorrow = h.status !== "unsupported";
               return (

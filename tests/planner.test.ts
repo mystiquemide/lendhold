@@ -411,7 +411,7 @@ describe("Lista minimum loan", () => {
     // 0.1 NVDAB at $228 = $22.80; safe = 22.80 * 0.75 * 0.6 = 10.26
     const plan = await buildPlan({ ...base, action: "borrow", collateralAmount: "0.1" });
     expect(plan.blockers).toEqual([
-      { code: "BELOW_MIN_LOAN", message: "The safe amount is 10.26 USD1, below Lista's minimum loan of 15.16 USD1. Deposit more NVDAB to borrow" },
+      { code: "BELOW_MIN_LOAN", message: "The safe amount is 10.26 USD1, below Lista's minimum loan of 15.16 USD1. Deposit more NVDAB to borrow." },
     ]);
     expect(plan.steps).toEqual([]);
   });

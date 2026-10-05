@@ -498,7 +498,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
         ? existingDebt > 0n
           ? `Lista's minimum loan is ${fmtUp(floor, chain.loanDecimals)} ${sym}. Your total debt must stay at or above that`
           : `Lista's minimum loan is ${fmtUp(floor, chain.loanDecimals)} ${sym}. Borrow at least that much`
-        : `The safe amount is ${fmtDown(sizing.safeBorrowNew, chain.loanDecimals)} ${sym}, below Lista's minimum loan of ${fmtUp(floor, chain.loanDecimals)} ${sym}. Deposit more ${collateral.symbol} to borrow`,
+        : `The safe amount is ${fmtDown(sizing.safeBorrowNew, chain.loanDecimals)} ${sym}, below Lista's minimum loan of ${fmtUp(floor, chain.loanDecimals)} ${sym}. Deposit more ${collateral.symbol} to borrow.`,
     );
     return finish(plan, b);
   }

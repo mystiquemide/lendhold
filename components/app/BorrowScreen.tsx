@@ -167,7 +167,7 @@ export function BorrowScreen({ token }: { token: string }) {
 
   if (holding === null) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
         <Notice tone="watch" title="This stock isn't in your wallet">
           Pick a stock you hold from your list.
         </Notice>
@@ -226,7 +226,7 @@ export function BorrowScreen({ token }: { token: string }) {
                   touched.current = true;
                   setAmount(e.target.value.replace(",", ".").replace(/[^\d.]/g, ""));
                 }}
-                className="num w-full min-w-0 bg-transparent text-[36px] leading-[44px] tracking-[-0.02em] text-ink outline-none placeholder:text-line"
+                className="num w-full min-w-0 bg-transparent text-[36px] leading-[44px] tracking-[-0.02em] text-ink outline-none placeholder:text-line focus-visible:outline-none"
               />
               <span className="shrink-0 text-lg text-muted">{m?.loanSymbol ?? ""}</span>
               {planning && <LoaderCircle size={18} strokeWidth={1.75} className="shrink-0 animate-spin text-muted" aria-label="Updating" />}
