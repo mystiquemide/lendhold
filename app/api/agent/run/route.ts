@@ -14,7 +14,7 @@ const body = z.object({ planId: z.uuid() });
 export const POST = handle(async (req) => {
   requireOperator(req);
   const { planId } = await parseBody(req, body);
-  const plan = loadPlan(planId);
+  const plan = await loadPlan(planId);
   if (plan.blockers.length > 0 || plan.steps.length === 0) {
     throw new AppError("PLAN_BLOCKED", "This plan cannot be run", 409);
   }
@@ -27,7 +27,7 @@ export const POST = handle(async (req) => {
   if (agentAddress.toLowerCase() !== plan.address.toLowerCase()) {
     throw new AppError("WRONG_WALLET", "This plan is for a different wallet than the agent's wallet", 400);
   }
-  const run = createRunFromPlan(plan, "agent");
+  const run = await createRunFromPlan(plan, "agent");
   void runAgentPlan(run.id).catch((err: unknown) => {
     console.error("Agent run crashed:", run.id, err instanceof Error ? err.message : String(err));
   });

@@ -12,7 +12,7 @@ const body = z.object({ planId: z.uuid(), idx: z.number().int().min(0) });
 
 export const POST = handle(async (req) => {
   const { planId, idx } = await parseBody(req, body);
-  const plan = loadPlan(planId);
+  const plan = await loadPlan(planId);
   const step = plan.steps[idx];
   if (!step) throw new AppError("NO_SUCH_STEP", "That step does not exist", 404);
   if (step.kind !== "swap" || !step.swap) {
@@ -41,7 +41,7 @@ export const POST = handle(async (req) => {
     slippagePercent: SLIPPAGE_PERCENT,
   });
   if (built.tx) {
-    saveBuiltTx({ planId, idx, to: built.tx.to, selector: built.tx.data.slice(0, 10) });
+    await saveBuiltTx({ planId, idx, to: built.tx.to, selector: built.tx.data.slice(0, 10) });
   }
   return json({
     planId,

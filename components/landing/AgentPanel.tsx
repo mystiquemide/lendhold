@@ -7,7 +7,7 @@ export async function AgentPanel() {
   await connection();
   let rows;
   try {
-    rows = listConfirmedSteps(3, undefined, ["agent", "skill"]);
+    rows = await listConfirmedSteps(3, undefined, ["agent", "skill"]);
   } catch (err) {
     console.error("how it works agent panel unavailable", err);
     return null;

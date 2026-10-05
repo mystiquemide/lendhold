@@ -24,7 +24,7 @@ export async function ProofRuns() {
   await connection();
   let runs: ProofRun[];
   try {
-    runs = listProofRuns(100);
+    runs = await listProofRuns(100);
   } catch (err) {
     console.error("proof runs unavailable", err);
     runs = [];

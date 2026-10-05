@@ -9,7 +9,7 @@ import { evaluateSwap, SLIPPAGE_PERCENT, swapRejectionMessage, type SwapEval, ty
 import { verifyTx, type ObservedTx } from "@/lib/engine/verify";
 import { erc20Allowance, erc20Balance, getPosition, moolahAddress } from "@/lib/lista/chain";
 import { getRun, updateRunStatus, upsertStep, type RunStep, type RunWithSteps } from "@/lib/store/db";
-import type Database from "better-sqlite3";
+import type { Sql } from "@/lib/store/sql";
 import { AgentError, ensureAgentReady, getBaw, type AgentOrder, type AgentReadiness, type Baw, type ContractCallPreview } from "./baw";
 
 const ORDER_CLOCK_SKEW_MS = 10_000;
@@ -44,7 +44,7 @@ export const defaultChainReader: ChainReader = {
 export interface ExecutorDeps {
   baw: Baw;
   chain: ChainReader;
-  db?: Database.Database;
+  db?: Sql;
   ready: (requiredUsd: number) => Promise<AgentReadiness>;
   simulate: (plan: Plan, idx: number) => Promise<StepSimulation>;
   evaluateSwap: (from: SwapToken, to: SwapToken, amountIn: bigint, user: string) => Promise<SwapEval | null>;
@@ -153,14 +153,14 @@ export async function runAgentPlan(runId: string, overrides: Partial<ExecutorDep
 }
 
 async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome> {
-  const load = (): RunWithSteps => {
-    const run = getRun(runId, d.db);
+  const load = async (): Promise<RunWithSteps> => {
+    const run = await getRun(runId, d.db);
     if (!run) throw new Error(`Run ${runId} not found`);
     return run;
   };
-  const write = (idx: number, kind: Step["kind"], patch: Partial<Pick<RunStep, "status" | "txHash" | "orderId" | "error" | "simJson">>) => {
-    const current = load().steps.find((s) => s.idx === idx);
-    upsertStep(
+  const write = async (idx: number, kind: Step["kind"], patch: Partial<Pick<RunStep, "status" | "txHash" | "orderId" | "error" | "simJson">>) => {
+    const current = (await (await load())).steps.find((s) => s.idx === idx);
+    await upsertStep(
       {
         runId,
         idx,
@@ -174,15 +174,15 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
       d.db,
     );
   };
-  const fail = (step: Step | null, reason: string): AgentRunOutcome => {
+  const fail = async (step: Step | null, reason: string): Promise<AgentRunOutcome> => {
     const idx = step?.idx ?? 0;
-    const kind = step?.kind ?? load().steps[0]?.kind ?? "approve";
-    write(idx, kind as Step["kind"], { status: "failed", error: reason });
-    updateRunStatus(runId, "failed", d.db);
+    const kind = step?.kind ?? (await load()).steps[0]?.kind ?? "approve";
+    await write(idx, kind as Step["kind"], { status: "failed", error: reason });
+    await updateRunStatus(runId, "failed", d.db);
     return { status: "failed", idx, reason };
   };
 
-  const run = load();
+  const run = (await load());
   if (run.path !== "agent" || !run.planJson) {
     throw new Error("Run is not an agent run with a stored plan");
   }
@@ -201,11 +201,11 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     return fail(first, "The plan is for a different wallet than the agent's wallet");
   }
 
-  updateRunStatus(runId, "running", d.db);
+  await updateRunStatus(runId, "running", d.db);
   const moolah = moolahAddress();
 
   for (const step of plan.steps) {
-    const rec = load().steps.find((s) => s.idx === step.idx);
+    const rec = (await load()).steps.find((s) => s.idx === step.idx);
     if (rec?.status === "confirmed" || rec?.status === "skipped") continue;
 
     try {
@@ -223,7 +223,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
 
       const skipped = await alreadyApplied(step, rec);
       if (skipped) {
-        write(step.idx, step.kind, { status: "skipped", error: skipped });
+        await write(step.idx, step.kind, { status: "skipped", error: skipped });
         continue;
       }
 
@@ -234,7 +234,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     }
   }
 
-  updateRunStatus(runId, "done", d.db);
+  await updateRunStatus(runId, "done", d.db);
   return { status: "done" };
 
   // ---------------------------------------------------------------- helpers
@@ -251,7 +251,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     let base = readBaseline(rec);
     if (!base) {
       base = now;
-      write(step.idx, step.kind, { simJson: toJson({ baseline: base }) });
+      await write(step.idx, step.kind, { simJson: toJson({ baseline: base }) });
       return null;
     }
     const amount = step.amount ?? 0n;
@@ -272,7 +272,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
 
     const sim = await d.simulate(plan, step.idx);
     if (!sim.ok) return `Simulation failed: ${sim.reason ?? "unknown reason"}`;
-    write(step.idx, step.kind, { status: "simulated" });
+    await write(step.idx, step.kind, { status: "simulated" });
 
     const preview = await d.baw.contractCallPreview({ from: owner, to: step.to, value: step.value, inputData: step.data });
     const risk = blockingRisk(preview);
@@ -285,7 +285,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     if (exec.status !== "BROADCASTED" || !exec.txHash) {
       return exec.message || `Wallet returned ${exec.status} instead of broadcasting`;
     }
-    write(step.idx, step.kind, { status: "sent", txHash: exec.txHash, orderId: exec.orderId ?? null });
+    await write(step.idx, step.kind, { status: "sent", txHash: exec.txHash, orderId: exec.orderId ?? null });
     return confirmTx(step, exec.txHash as `0x${string}`);
   }
 
@@ -294,7 +294,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     if (!observed) return `Transaction ${hash} was not mined within ${Math.round(d.receiptTimeoutMs / 1000)}s`;
     const result = verifyTx(observed, { from: owner, to: step.to as string, selector: step.selector as string });
     if (!result.ok) return result.message;
-    write(step.idx, step.kind, { status: "confirmed", txHash: hash, error: null });
+    await write(step.idx, step.kind, { status: "confirmed", txHash: hash, error: null });
     return null;
   }
 
@@ -308,7 +308,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
     if (!evaluation.acceptable) {
       return swapRejectionMessage(s.fromSymbol, s.toSymbol, evaluation);
     }
-    write(step.idx, step.kind, { status: "simulated" });
+    await write(step.idx, step.kind, { status: "simulated" });
     const submittedAt = Date.now();
     const submitted = await d.baw.marketOrderSwap({
       fromTokenQty: formatUnits(s.amountIn, s.fromDecimals),
@@ -316,7 +316,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
       toToken: s.to,
       slippage: SLIPPAGE_PERCENT,
     });
-    write(step.idx, step.kind, { status: "sent", orderId: submitted.orderId });
+    await write(step.idx, step.kind, { status: "sent", orderId: submitted.orderId });
     return pollOrder(step, submitted.orderId, submittedAt);
   }
 
@@ -324,7 +324,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
   async function findOrderByMatch(step: Step, submittedAt: number): Promise<{ order?: AgentOrder; ambiguous?: string }> {
     const s = step.swap;
     if (!s) return {};
-    const taken = new Set(load().steps.filter((r) => r.idx !== step.idx && r.orderId).map((r) => r.orderId));
+    const taken = new Set((await load()).steps.filter((r) => r.idx !== step.idx && r.orderId).map((r) => r.orderId));
     const matches = (await d.baw.recentOrders("56")).filter((o) => {
       if (taken.has(o.orderId)) return false;
       if (o.fromToken?.toLowerCase() !== s.from.toLowerCase() || o.toToken?.toLowerCase() !== s.to.toLowerCase()) return false;
@@ -354,7 +354,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
         if (found.order) {
           order = found.order;
           orderId = order.orderId;
-          write(step.idx, step.kind, { status: "sent", orderId });
+          await write(step.idx, step.kind, { status: "sent", orderId });
         }
       }
       if (order?.status === "FINISHED") {
@@ -364,7 +364,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
         if (!observed) return `Swap transaction ${hash} was not mined within ${Math.round(d.receiptTimeoutMs / 1000)}s`;
         const result = verifyTx(observed, { from: owner });
         if (!result.ok) return result.message;
-        write(step.idx, step.kind, { status: "confirmed", txHash: hash, orderId, error: null });
+        await write(step.idx, step.kind, { status: "confirmed", txHash: hash, orderId, error: null });
         return null;
       }
       if (order?.status === "FAILED") return `Binance marked swap order ${orderId} as FAILED`;

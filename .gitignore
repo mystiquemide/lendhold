@@ -45,3 +45,7 @@ yarn-debug.log*
 # Local run store
 data/
 docs/DESIGN.md
+.env*
+.agents/
+.claude/
+skills-lock.json

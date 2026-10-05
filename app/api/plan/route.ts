@@ -25,7 +25,7 @@ const body = z.object({
 export const POST = handle(async (req) => {
   const { check, ...input } = await parseBody(req, body);
   const plan = await buildPlan(input);
-  persistPlan(plan);
+  await persistPlan(plan);
   const review = check ? await prepareForReview(plan) : null;
   return json({ plan, review, expiresAt: plan.createdAt + PLAN_TTL_MS });
 });

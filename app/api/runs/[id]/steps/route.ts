@@ -17,7 +17,7 @@ const body = z.object({
 export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> }) => {
   const { id } = await ctx.params;
   const { idx, txHash } = await parseBody(req, body);
-  const run = getRun(id);
+  const run = await getRun(id);
   if (!run) throw new AppError("RUN_NOT_FOUND", "Run not found", 404);
   if (!run.planJson || !run.address) throw new AppError("RUN_INVALID", "Run has no plan", 409);
   const plan = fromJson<Plan>(run.planJson);
@@ -35,7 +35,7 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
   if (step.kind === "swap" && run.path === "skill") {
     // The user's own Agentic Wallet routes the swap, so only the sender and success can be checked.
   } else if (step.kind === "swap") {
-    const built = getBuiltTx(plan.id, idx);
+    const built = await getBuiltTx(plan.id, idx);
     if (!built) {
       throw new AppError("SWAP_NOT_BUILT", "Build the swap through /api/swap/build first", 409);
     }
@@ -58,9 +58,9 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
     ]);
   } catch {
     // Not mined yet. Record the hash so a reload resumes this step instead of sending it again.
-    upsertStep({ runId: id, idx, kind: step.kind, status: "sent", txHash });
-    updateRunStatus(id, "running");
-    return json({ run: getRun(id), pending: true }, 202);
+    await upsertStep({ runId: id, idx, kind: step.kind, status: "sent", txHash });
+    await updateRunStatus(id, "running");
+    return json({ run: await getRun(id), pending: true }, 202);
   }
 
   const result = verifyTx(
@@ -68,14 +68,14 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
     { from: run.address, to: expectedTo, selector },
   );
   if (!result.ok) {
-    upsertStep({ runId: id, idx, kind: step.kind, status: "failed", txHash, error: result.message });
-    updateRunStatus(id, "failed");
-    return json({ run: getRun(id), error: { code: result.code, message: result.message } }, 422);
+    await upsertStep({ runId: id, idx, kind: step.kind, status: "failed", txHash, error: result.message });
+    await updateRunStatus(id, "failed");
+    return json({ run: await getRun(id), error: { code: result.code, message: result.message } }, 422);
   }
 
-  upsertStep({ runId: id, idx, kind: step.kind, status: "confirmed", txHash });
-  const updated = getRun(id)!;
+  await upsertStep({ runId: id, idx, kind: step.kind, status: "confirmed", txHash });
+  const updated = (await getRun(id))!;
   const allDone = updated.steps.every((s) => s.status === "confirmed" || s.status === "skipped");
-  updateRunStatus(id, allDone ? "done" : "running");
-  return json({ run: getRun(id) });
+  await updateRunStatus(id, allDone ? "done" : "running");
+  return json({ run: await getRun(id) });
 });
