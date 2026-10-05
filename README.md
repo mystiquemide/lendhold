@@ -21,7 +21,7 @@ Lendhold turns that into one reviewed plan, signed from your own wallet.
 3. Your stock tokens are listed with their value. Tap Borrow on a bStock such as NVDAB or TSLAB.
 4. See the safe amount, the most you can borrow, Lista's minimum loan and the price where risk starts.
 5. Open Review to see the shares you keep, what you get, what you owe, the interest and every step, each checked before signing.
-6. Confirm, and sign each step in your wallet. A borrow needs about $35 of stock to clear Lista's minimum loan of about 15 USDC. Adding and withdrawing stock work with a few dollars.
+6. Confirm, and sign each step in your wallet. A borrow needs about $35 of stock to clear Lista's minimum loan of about 15 USDC. Once you have a position, its loan screen lets you repay, add stock or withdraw.
 
 Every finished run is listed at [lendhold.midelabs.xyz/proof](https://lendhold.midelabs.xyz/proof).
 
