@@ -23,11 +23,20 @@ interface ReviewResponse {
     token: string;
     /** Missing on plans stored before this field existed. */
     request?: { amount?: string; collateralAmount?: string; receive?: "USDT" | "loan"; withdraw?: boolean; marketId?: string };
-    market: { id: string; loanSymbol: string; params: { lltv: string; oracle: string; loanToken: string; collateralToken: string } } | null;
-    steps: { idx: number; label: string; kind: string; to?: string }[];
+    market: { id: string; loanSymbol: string; loanDecimals: number; params: { lltv: string; oracle: string; loanToken: string; collateralToken: string } } | null;
+    steps: {
+      idx: number;
+      label: string;
+      kind: string;
+      to?: string;
+      amount?: string;
+      swap?: { fromSymbol: string; amountIn: string; fromDecimals: number };
+    }[];
+    sizing: { safeBorrowNew: string } | null;
     blockers: { code: string; message: string }[];
     notices: { code: string; message: string }[];
     display: {
+      sharesBefore: number | null;
       sharesAfter: number | null;
       receive: Amount | null;
       debt: Amount | null;
@@ -62,6 +71,68 @@ const CONFIRM_LABEL: Record<string, string> = {
   withdraw: "Confirm and withdraw",
   buy: "Confirm and buy",
 };
+
+type Plan = ReviewResponse["plan"];
+type TopRow = { label: string; value: string; note?: string; held?: boolean };
+
+function Held() {
+  return <span className="rounded-pill bg-safe-tint px-2 py-0.5 text-xs leading-4 text-safe">held</span>;
+}
+
+const RISK_NOTE = "Below this, part of your stock is sold to repay.";
+
+/** The rows above the steps, in the terms of the action being reviewed. */
+function topRows(plan: Plan): TopRow[] {
+  const d = plan.display;
+  const m = plan.market;
+  const rows: TopRow[] = [];
+  const owes = !!d.debt && BigInt(d.debt.amount) > 0n;
+  const risk = (label: string) =>
+    owes && d.riskPricePerShare != null ? [{ label, value: `Below $${fmtAmount(d.riskPricePerShare)} a share`, note: RISK_NOTE }] : [];
+  const moved = d.sharesBefore != null && d.sharesAfter != null ? Math.abs(d.sharesAfter - d.sharesBefore) : null;
+
+  switch (plan.action) {
+    case "repay": {
+      const step = plan.steps.find((s) => s.kind === "repay");
+      const pay = step?.amount && m ? `${fmtAmount(Number(formatUnits(BigInt(step.amount), m.loanDecimals)))} ${m.loanSymbol}` : "All you owe";
+      rows.push({ label: "You pay", value: pay });
+      rows.push({ label: "You owe after", value: d.debt ? amt(d.debt) : `0.00 ${m?.loanSymbol ?? ""}`.trim() });
+      rows.push(...risk("Risk price after"));
+      break;
+    }
+    case "deposit": {
+      if (d.sharesBefore != null) rows.push({ label: "Deposited before", value: `${fmtShares(d.sharesBefore)} shares` });
+      if (d.sharesAfter != null) rows.push({ label: "Deposited after", value: `${fmtShares(d.sharesAfter)} shares`, held: true });
+      if (plan.sizing && m) {
+        rows.push({ label: "Safe to borrow after", value: `${fmtAmount(Number(formatUnits(BigInt(plan.sizing.safeBorrowNew), m.loanDecimals)))} ${m.loanSymbol}` });
+      }
+      rows.push(...risk("Risk price after"));
+      break;
+    }
+    case "withdraw": {
+      if (moved != null) rows.push({ label: "Back to your wallet", value: `${fmtShares(moved)} shares` });
+      if (d.sharesAfter != null) rows.push({ label: "Still deposited", value: `${fmtShares(d.sharesAfter)} shares` });
+      if (owes) rows.push({ label: "You owe", value: amt(d.debt!) });
+      rows.push(...risk("Risk price after"));
+      break;
+    }
+    case "buy": {
+      const swap = plan.steps.find((s) => s.swap)?.swap;
+      if (swap) rows.push({ label: "You pay", value: `${fmtAmount(Number(formatUnits(BigInt(swap.amountIn), swap.fromDecimals)))} ${swap.fromSymbol}` });
+      if (d.sharesAfter != null) rows.push({ label: "You get about", value: `${fmtShares(d.sharesAfter)} shares`, held: true });
+      break;
+    }
+    default: {
+      if (d.sharesAfter != null) rows.push({ label: "You keep", value: `${fmtShares(d.sharesAfter)} shares`, held: true });
+      if (d.receive) rows.push({ label: "You get", value: amt(d.receive) });
+      if (d.debt) rows.push({ label: "You owe", value: amt(d.debt) });
+      if (d.aprPct != null) rows.push({ label: "Interest", value: `${fmtAmount(d.aprPct)}% a year` });
+      if (d.riskPricePerShare != null) rows.push({ label: "Risk price", value: `Below $${fmtAmount(d.riskPricePerShare)} a share`, note: RISK_NOTE });
+    }
+  }
+  if (d.conversionCostPct != null) rows.push({ label: "Conversion cost", value: `${Math.max(d.conversionCostPct, 0).toFixed(2)}%` });
+  return rows;
+}
 
 function Row({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
@@ -150,45 +221,30 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
 
   const { plan, review } = res;
   const notMine = address && plan.address.toLowerCase() !== address.toLowerCase();
-  const d = plan.display;
   const checks = new Map((review?.steps ?? []).map((s) => [s.idx, s]));
   const problems = review && !review.ok ? review.problems : [];
   const canConfirm = !expired && !notMine && !!review?.ok && plan.steps.length > 0;
-  const backHref = `/app/borrow/${plan.token}`;
+  const backHref =
+    plan.action === "buy"
+      ? `/app/buy/${plan.token}`
+      : plan.action !== "borrow" && plan.market
+        ? `/app/loan/${plan.market.id}`
+        : `/app/borrow/${plan.token}`;
 
   return (
     <div className="flex flex-col gap-4">
       <Link href={backHref} className="inline-flex min-h-11 items-center gap-1 self-start text-[15px] leading-6 text-ink hover:underline">
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
-        Change amount
+        {plan.action === "borrow" || plan.action === "buy" ? "Change amount" : "Back to your loan"}
       </Link>
       <div className={cn(SPLIT, "gap-6")}>
         <div className={cn(PANE_LEFT_TOP, "lg:gap-6")}>
           <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">Review</h1>
 
           <div className="-mt-3">
-            {d.sharesAfter != null && (
-              <Row
-                label="You keep"
-                value={
-                  <>
-                    {fmtShares(d.sharesAfter)} shares
-                    <span className="rounded-pill bg-safe-tint px-2 py-0.5 text-xs leading-4 text-safe">held</span>
-                  </>
-                }
-              />
-            )}
-            {d.receive && <Row label="You get" value={amt(d.receive)} />}
-            {d.debt && <Row label="You owe" value={amt(d.debt)} />}
-            {d.aprPct != null && <Row label="Interest" value={`${fmtAmount(d.aprPct)}% a year`} />}
-            {d.riskPricePerShare != null && (
-              <Row
-                label="Risk price"
-                value={`Below $${fmtAmount(d.riskPricePerShare)} a share`}
-                note="Below this, part of your stock is sold to repay."
-              />
-            )}
-            {d.conversionCostPct != null && <Row label="Conversion cost" value={`${Math.max(d.conversionCostPct, 0).toFixed(2)}%`} />}
+            {topRows(res.plan).map((r) => (
+              <Row key={r.label} label={r.label} value={r.held ? <>{r.value}<Held /></> : r.value} note={r.note} />
+            ))}
           </div>
 
           {plan.notices.map((n) => (
