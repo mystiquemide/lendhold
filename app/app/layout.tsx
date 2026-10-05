@@ -12,7 +12,7 @@ export default function AppLayout({ children }: LayoutProps<"/app">) {
   return (
     <WalletProvider>
       <AppBar right={<WalletChip />} />
-      <main id="main" className="mx-auto w-full max-w-[480px] px-4 pb-16 pt-8">
+      <main id="main" className="mx-auto w-full max-w-[480px] px-4 lg:max-w-[1040px] pb-16 pt-8">
         {children}
       </main>
     </WalletProvider>

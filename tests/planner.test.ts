@@ -65,6 +65,7 @@ const refPrice: Record<string, number> = {
 import { buildPlan } from "@/lib/engine/planner";
 import { SELECTORS } from "@/lib/lista/calldata";
 import { valueRatio } from "@/lib/engine/swap-eval";
+import { minLoanFloor } from "@/lib/engine/sizing";
 
 const params = (loan: string) => ({
   loanToken: getAddress(loan),
@@ -387,6 +388,7 @@ describe("Lista minimum loan", () => {
     expect(plan.blockers).toEqual([{ code: "BELOW_MIN_LOAN", message: "Lista's minimum loan is 15.16 USD1. Borrow at least that much" }]);
     expect(plan.steps).toEqual([]);
     expect(plan.market!.minLoan).toBe(MIN);
+    expect(plan.market!.minBorrow).toBe(minLoanFloor(MIN));
     expect(m.readMinLoan).toHaveBeenCalledWith(expect.objectContaining({ collateralToken: getAddress(NVDAB) }));
   });
 

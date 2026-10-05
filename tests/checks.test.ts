@@ -55,6 +55,7 @@ function plan(steps: Step[]): Plan {
       loanSymbol: "USD1",
       loanDecimals: 18,
       minLoan: 0n,
+      minBorrow: 0n,
     },
     display: {} as Plan["display"],
     sizing: null,

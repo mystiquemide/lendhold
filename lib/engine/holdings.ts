@@ -17,6 +17,9 @@ export type HoldingStatus = "ready" | "convert" | "unsupported";
 export interface Holding {
   address: string;
   symbol: string;
+  /** Company or fund name without the issuer suffix. */
+  name: string;
+  logoUrl: string | null;
   ticker: string;
   platform: HoldingPlatform;
   decimals: number;
@@ -29,6 +32,11 @@ export interface Holding {
   status: HoldingStatus;
   reason: string;
   matchingBStock?: { address: string; symbol: string };
+}
+
+/** "NVIDIA (bStocks)" and "Vicor (Ondo Tokenized)" become "NVIDIA" and "Vicor". */
+export function cleanTokenName(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*$/, "").trim() || name;
 }
 
 export const NO_ROOM = "No lending market with room right now";
@@ -83,6 +91,8 @@ export async function getHoldings(address: string): Promise<Holding[]> {
       const base = {
         address: balance.address,
         symbol,
+        name: token ? cleanTokenName(token.name) : ticker,
+        logoUrl: token?.logoUrl ?? null,
         ticker,
         platform: entry.platform,
         decimals,

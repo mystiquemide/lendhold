@@ -13,6 +13,21 @@ import {
 
 const WALLET_KEY = "lendhold:wallet";
 const ELIGIBLE_KEY = "lendhold:eligible";
+/** Dev only: `/app?as=0x…` reads that address's balances without a wallet. Nothing can be signed. */
+const VIEW_AS_KEY = "lendhold:view-as";
+const VIEW_AS_ENABLED = process.env.NODE_ENV === "development";
+
+function readViewAs(): Address | null {
+  if (!VIEW_AS_ENABLED) return null;
+  try {
+    const param = new URLSearchParams(window.location.search).get("as");
+    if (param) window.sessionStorage.setItem(VIEW_AS_KEY, param);
+    const stored = param ?? window.sessionStorage.getItem(VIEW_AS_KEY);
+    return stored ? getAddress(stored) : null;
+  } catch {
+    return null;
+  }
+}
 
 function readStore(key: string): string | null {
   try {
@@ -67,6 +82,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [eligible, setEligible] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [viewAs, setViewAs] = useState<Address | null>(null);
   const restored = useRef(false);
 
   const attach = useCallback(async (w: WalletDetail, accounts: unknown) => {
@@ -85,6 +101,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setReady(true);
     setEligible(readStore(ELIGIBLE_KEY) === "yes");
+    setViewAs(readViewAs());
     const last = readStore(WALLET_KEY);
     return watchWallets((w) => {
       setWallets((prev) => (prev.some((p) => p.info.uuid === w.info.uuid) ? prev : sortWallets([...prev, w])));
@@ -137,6 +154,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   const disconnect = useCallback(() => {
+    try {
+      window.sessionStorage.removeItem(VIEW_AS_KEY);
+    } catch {}
+    setViewAs(null);
     wallet?.provider
       .request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] })
       .catch(() => {});
@@ -174,10 +195,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       ready,
       wallets,
       wallet,
-      address,
-      chainId,
-      onBsc: chainId === BSC_CHAIN_ID,
-      eligible,
+      address: viewAs ?? address,
+      chainId: viewAs ? BSC_CHAIN_ID : chainId,
+      onBsc: viewAs !== null || chainId === BSC_CHAIN_ID,
+      eligible: viewAs !== null || eligible,
       connecting,
       error,
       connect,
@@ -186,7 +207,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       confirmEligible,
       clearError: () => setError(null),
     }),
-    [ready, wallets, wallet, address, chainId, eligible, connecting, error, connect, disconnect, switchToBsc, confirmEligible],
+    [ready, wallets, wallet, address, viewAs, chainId, eligible, connecting, error, connect, disconnect, switchToBsc, confirmEligible],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

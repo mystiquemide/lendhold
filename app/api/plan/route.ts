@@ -18,12 +18,14 @@ const body = z.object({
   receive: z.enum(["USDT", "loan"]).optional(),
   withdraw: z.boolean().optional(),
   marketId: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+  /** False skips the on-chain checks, for quick re-plans while the amount is being typed. */
+  check: z.boolean().default(true),
 });
 
 export const POST = handle(async (req) => {
-  const input = await parseBody(req, body);
+  const { check, ...input } = await parseBody(req, body);
   const plan = await buildPlan(input);
   persistPlan(plan);
-  const review = await prepareForReview(plan);
+  const review = check ? await prepareForReview(plan) : null;
   return json({ plan, review, expiresAt: plan.createdAt + PLAN_TTL_MS });
 });

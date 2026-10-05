@@ -10,6 +10,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  allowedDevOrigins: ["*.ngrok-free.dev"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

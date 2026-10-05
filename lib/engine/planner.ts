@@ -112,6 +112,8 @@ export interface PlanMarket {
   loanDecimals: number;
   /** Lista's minimum loan in loan-token units, as read on-chain (before the safety margin). */
   minLoan: bigint;
+  /** The smallest total debt Lendhold plans: the minimum loan plus the safety margin. */
+  minBorrow: bigint;
 }
 
 export interface PlanDisplay {
@@ -375,7 +377,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
   const params = market.params;
   const loan = loanSwapToken(market, chain);
   const minLoan = await readMinLoan(params);
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan, minBorrow: minLoanFloor(minLoan) };
 
   const { session, statuses, allTrading } = await sessionFor(isOndo ? [token, collateral] : [collateral]);
   if (isOndo && !allTrading) {
@@ -569,7 +571,7 @@ async function planRepay(req: PlanRequest, owner: Address, token: RwaToken): Pro
   const { market, position, chain } = found;
   const params = market.params;
   const minLoan = await readMinLoan(params);
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan, minBorrow: minLoanFloor(minLoan) };
   const rate = await borrowRatePerSecond(params, chain.state);
   const debt = borrowSharesToAssets(position.borrowShares, chain.state, {
     ratePerSecond: rate,
@@ -665,7 +667,7 @@ async function planWithdraw(req: PlanRequest, owner: Address, token: RwaToken): 
   const { market, position, chain } = found;
   const params = market.params;
   const minLoan = await readMinLoan(params);
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan, minBorrow: minLoanFloor(minLoan) };
   const rate = await borrowRatePerSecond(params, chain.state);
   const debt = borrowSharesToAssets(position.borrowShares, chain.state, {
     ratePerSecond: rate,
@@ -759,7 +761,7 @@ async function planDeposit(req: PlanRequest, owner: Address, token: RwaToken): P
   }
   const params = market.params;
   const minLoan = await readMinLoan(params);
-  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan };
+  plan.market = { id: market.id, params, loanSymbol: market.loanSymbol, loanDecimals: chain.loanDecimals, minLoan, minBorrow: minLoanFloor(minLoan) };
 
   const balance = await erc20Balance(token.address as Address, owner);
   const all = !req.amount || req.amount === "all";

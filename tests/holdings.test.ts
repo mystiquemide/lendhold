@@ -88,3 +88,12 @@ describe("getHoldings", () => {
     expect(h.shares).toBeCloseTo(0.25 * 1.01, 9);
   });
 });
+
+describe("cleanTokenName", () => {
+  it("drops the issuer suffix", async () => {
+    const { cleanTokenName } = await import("@/lib/engine/holdings");
+    expect(cleanTokenName("NVIDIA (bStocks)")).toBe("NVIDIA");
+    expect(cleanTokenName("Vicor (Ondo Tokenized)")).toBe("Vicor");
+    expect(cleanTokenName("Plain")).toBe("Plain");
+  });
+});
