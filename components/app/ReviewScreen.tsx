@@ -21,6 +21,8 @@ interface ReviewResponse {
     action: string;
     address: string;
     token: string;
+    /** Missing on plans stored before this field existed. */
+    request?: { amount?: string; collateralAmount?: string; receive?: "USDT" | "loan"; withdraw?: boolean; marketId?: string };
     market: { id: string; loanSymbol: string; params: { lltv: string; oracle: string; loanToken: string; collateralToken: string } } | null;
     steps: { idx: number; label: string; kind: string; to?: string }[];
     blockers: { code: string; message: string }[];
@@ -52,6 +54,14 @@ const STATUS = {
   simulated_failed: { label: "Simulation failed", ok: false },
   check_failed: { label: "Check failed", ok: false },
 } as const;
+
+const CONFIRM_LABEL: Record<string, string> = {
+  borrow: "Confirm and borrow",
+  repay: "Confirm and repay",
+  deposit: "Confirm and deposit",
+  withdraw: "Confirm and withdraw",
+  buy: "Confirm and buy",
+};
 
 function Row({ label, value, note }: { label: string; value: React.ReactNode; note?: string }) {
   return (
@@ -108,8 +118,10 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
           action: res.plan.action,
           token: res.plan.token,
           check: false,
-          ...(amount ? { amount } : {}),
-          ...(receive === "USDT" || receive === "loan" ? { receive } : {}),
+          ...(res.plan.request ?? {
+            ...(amount ? { amount } : {}),
+            ...(receive === "USDT" || receive === "loan" ? { receive } : {}),
+          }),
         }),
       });
       const q = new URLSearchParams({ ...(amount ? { amount } : {}), ...(receive ? { receive } : {}) });
@@ -272,7 +284,7 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
           ) : (
             <div className="flex flex-col items-center gap-3">
               <Pill variant="primary" fullWidth disabled={!canConfirm} onClick={() => router.push(`/app/run/new?plan=${plan.id}`)}>
-                Confirm and borrow
+                {CONFIRM_LABEL[plan.action] ?? "Confirm"}
               </Pill>
               {countdown && (
                 <p className="num text-[13px] leading-5 text-muted" aria-live="off">

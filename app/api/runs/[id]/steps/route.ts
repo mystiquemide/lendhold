@@ -26,6 +26,9 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
   if (!step || !existing) throw new AppError("NO_SUCH_STEP", "That step does not exist", 404);
 
   if (existing.status === "confirmed") return json({ run });
+  if (existing.status === "sent" && existing.txHash && existing.txHash.toLowerCase() !== txHash.toLowerCase()) {
+    throw new AppError("STEP_ALREADY_SENT", "This step already has a transaction. Wait for it instead of sending another.", 409);
+  }
 
   let expectedTo: string | undefined;
   let selector: string | undefined;
@@ -54,14 +57,21 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
       chain.getTransaction({ hash }),
     ]);
   } catch {
-    throw new AppError("TX_NOT_FOUND", "That transaction was not found on BNB Chain (yet)", 422);
+    // Not mined yet. Record the hash so a reload resumes this step instead of sending it again.
+    upsertStep({ runId: id, idx, kind: step.kind, status: "sent", txHash });
+    updateRunStatus(id, "running");
+    return json({ run: getRun(id), pending: true }, 202);
   }
 
   const result = verifyTx(
     { status: receipt.status, from: receipt.from, to: receipt.to, input: tx.input },
     { from: run.address, to: expectedTo, selector },
   );
-  if (!result.ok) throw new AppError(result.code, result.message, 422);
+  if (!result.ok) {
+    upsertStep({ runId: id, idx, kind: step.kind, status: "failed", txHash, error: result.message });
+    updateRunStatus(id, "failed");
+    return json({ run: getRun(id), error: { code: result.code, message: result.message } }, 422);
+  }
 
   upsertStep({ runId: id, idx, kind: step.kind, status: "confirmed", txHash });
   const updated = getRun(id)!;

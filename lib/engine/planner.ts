@@ -139,6 +139,8 @@ export interface Plan {
   action: PlanAction;
   address: Address;
   token: Address;
+  /** The inputs this plan was built from, so a refresh rebuilds the same request. */
+  request: Pick<PlanRequest, "amount" | "collateralAmount" | "receive" | "withdraw" | "marketId">;
   market: PlanMarket | null;
   display: PlanDisplay;
   sizing: Sizing | null;
@@ -165,6 +167,12 @@ const EMPTY_DISPLAY: PlanDisplay = {
 export function fmtUp(amount: bigint, decimals: number): string {
   const unit = 10n ** BigInt(Math.max(decimals - 2, 0));
   const cents = decimals >= 2 ? (amount + unit - 1n) / unit : amount * 10n ** BigInt(2 - decimals);
+  return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
+}
+
+/** Two decimals, rounded down, so a safe amount never reads higher than the one on screen. */
+export function fmtDown(amount: bigint, decimals: number): string {
+  const cents = decimals >= 2 ? amount / 10n ** BigInt(decimals - 2) : amount * 10n ** BigInt(2 - decimals);
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
 }
 
@@ -199,6 +207,13 @@ function newPlan(b: Builder, req: PlanRequest, owner: Address, token: Address): 
     action: req.action,
     address: owner,
     token,
+    request: {
+      amount: req.amount,
+      collateralAmount: req.collateralAmount,
+      receive: req.receive,
+      withdraw: req.withdraw,
+      marketId: req.marketId,
+    },
     market: null,
     display: { ...EMPTY_DISPLAY },
     sizing: null,
@@ -483,7 +498,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
         ? existingDebt > 0n
           ? `Lista's minimum loan is ${fmtUp(floor, chain.loanDecimals)} ${sym}. Your total debt must stay at or above that`
           : `Lista's minimum loan is ${fmtUp(floor, chain.loanDecimals)} ${sym}. Borrow at least that much`
-        : `The safe amount is ${fmtUp(sizing.safeBorrowNew, chain.loanDecimals)} ${sym}, below Lista's minimum loan of ${fmtUp(floor, chain.loanDecimals)} ${sym}. Deposit more ${collateral.symbol} to borrow`,
+        : `The safe amount is ${fmtDown(sizing.safeBorrowNew, chain.loanDecimals)} ${sym}, below Lista's minimum loan of ${fmtUp(floor, chain.loanDecimals)} ${sym}. Deposit more ${collateral.symbol} to borrow`,
     );
     return finish(plan, b);
   }

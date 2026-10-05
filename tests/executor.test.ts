@@ -41,7 +41,7 @@ const plan: Plan = {
   market: { id: NVDAB_MARKET as `0x${string}`, params: { loanToken: usd1, collateralToken: nvdab, oracle: MOOLAH, irm: MOOLAH, lltv: 75n * 10n ** 16n }, loanSymbol: "USD1", loanDecimals: 18, minLoan: 0n, minBorrow: 0n },
   display: {} as Plan["display"],
   sizing: { collateralValueLoan: 456n * E18, maxBorrowTotal: 342n * E18, maxBorrowNew: 342n * E18, safeBorrowNew: 205n * E18, buffer: 0.6, notices: [] },
-  steps, notices: [], blockers: [], createdAt: 0,
+  request: {}, steps, notices: [], blockers: [], createdAt: 0,
 };
 
 let dir: string;

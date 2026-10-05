@@ -59,6 +59,7 @@ function plan(steps: Step[]): Plan {
     },
     display: {} as Plan["display"],
     sizing: null,
+    request: {},
     steps,
     notices: [],
     blockers: [],
