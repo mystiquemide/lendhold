@@ -2,7 +2,7 @@
 
 Borrow against your tokenized stocks on BNB Chain. Keep them.
 
-Live app: deployment pending · Demo video: pending · [Run history](#proof)
+Live app: [lendhold.midelabs.xyz](https://lendhold.midelabs.xyz) · Demo video: pending · [Run history](https://lendhold.midelabs.xyz/proof)
 
 ## The problem
 
@@ -14,14 +14,14 @@ Lendhold turns that into one reviewed plan, signed from your own wallet.
 
 ## Try it in 60 seconds
 
-1. Open the app and go to `/app`. Until the hosted link is live, [run it locally](#run-locally).
+1. Open [lendhold.midelabs.xyz/app](https://lendhold.midelabs.xyz/app).
 2. Confirm you're eligible to hold tokenized stocks, then connect a wallet on BNB Chain. Tokenized stocks aren't available to US persons or in other restricted regions.
 3. Your stock tokens are listed with their value. Tap Borrow on a bStock such as NVDAB or TSLAB.
 4. See the safe amount, the most you can borrow, Lista's minimum loan and the price where risk starts.
 5. Open Review to see the shares you keep, what you get, what you owe, the interest and every step, each checked before signing.
 6. Confirm, and sign each step in your wallet. A borrow needs about $35 of stock to clear Lista's minimum loan of about 15 USDC. Adding and withdrawing stock work with a few dollars.
 
-Every finished run is listed on the app's `/proof` page.
+Every finished run is listed at [lendhold.midelabs.xyz/proof](https://lendhold.midelabs.xyz/proof).
 
 ## Proof
 
@@ -73,10 +73,10 @@ The [Lendhold skill](skill/lendhold/SKILL.md) lets your own Binance Agentic Wall
 ```bash
 npm install -g @binance/agentic-wallet
 npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
-export LENDHOLD_API=<your Lendhold server URL>
+export LENDHOLD_API=https://lendhold.midelabs.xyz
 ```
 
-Then ask: "Borrow $20 against my NVIDIA bStock." The agent stops on a failed preview, a risky preview, or anything the Binance App needs to approve. The operator page at `/agent` runs plans on a server-side Agentic Wallet with a per-run cap. Setup and safety rules: [skill/README.md](skill/README.md).
+Then ask: "Borrow $20 against my NVIDIA bStock." The agent stops on a failed preview, a risky preview, or anything the Binance App needs to approve. The operator page at `/agent` runs plans on a server-side Agentic Wallet with a per-run cap. It needs a server with `baw` signed in, so on the hosted app it only reports that the wallet isn't available. Setup and safety rules: [skill/README.md](skill/README.md).
 
 ## Limits and honest notes
 

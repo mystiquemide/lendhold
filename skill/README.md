@@ -13,7 +13,7 @@ The skill lives in [`lendhold/`](./lendhold): `SKILL.md` plus `references/` for 
 - A running Lendhold server. Set `LENDHOLD_API` to its URL:
 
   ```bash
-  export LENDHOLD_API=https://your-lendhold-server.example
+  export LENDHOLD_API=https://lendhold.midelabs.xyz
   ```
 
 ## Install
