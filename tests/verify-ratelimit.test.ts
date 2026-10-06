@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { verifyTx } from "@/lib/engine/verify";
+import { TRANSFER_TOPIC, verifyTx } from "@/lib/engine/verify";
 import { RateLimiter } from "@/lib/rate-limit";
 import { fromJson, toApiJson, toJson } from "@/lib/json";
 
@@ -73,5 +73,42 @@ describe("json", () => {
   });
   it("serializes bigint as plain strings for the API", () => {
     expect(JSON.parse(toApiJson({ a: 5n, b: { c: 7n } }))).toEqual({ a: "5", b: { c: "7" } });
+  });
+});
+
+describe("relayed swaps", () => {
+  // Shape of a real Ondo swap from the Agentic Wallet on 6 Oct 2026 (tx 0x4565…3c86): sent by a Binance relayer,
+  // with the USDT delivered to the wallet in the last Transfer log.
+  const WALLET = "0x40F93Eca205086b4ccbF722C871c2815c266550a";
+  const USDT = "0x55d398326f99059fF775485246999027B3197955";
+  const pad = (a: string) => `0x${"0".repeat(24)}${a.slice(2).toLowerCase()}`;
+  const transfer = (token: string, from: string, to: string) => ({ address: token, topics: [TRANSFER_TOPIC, pad(from), pad(to)] });
+  const relayed = {
+    status: "success" as const,
+    from: "0x30368b40b7A35F2e48f5150C075017dA31804312",
+    to: "0xa1015DeBc1c9D7918FEB26ef9283eDc08BAB05Cc",
+    input: "0x12345678",
+    logs: [
+      transfer("0xa9ee28c80f960b889dfbd1902055218cba016f75", WALLET, "0xa1015DeBc1c9D7918FEB26ef9283eDc08BAB05Cc"),
+      transfer(USDT, "0xa1015DeBc1c9D7918FEB26ef9283eDc08BAB05Cc", WALLET),
+    ],
+  };
+
+  it("accepts a relayed swap that delivered the expected token to the wallet", () => {
+    expect(verifyTx(relayed, { from: WALLET, receives: USDT })).toEqual({ ok: true });
+  });
+
+  it("rejects it when the token went to someone else, or a different token arrived", () => {
+    const elsewhere = { ...relayed, logs: [transfer(USDT, "0xa1015DeBc1c9D7918FEB26ef9283eDc08BAB05Cc", "0x000000000000000000000000000000000000dEaD")] };
+    expect(verifyTx(elsewhere, { from: WALLET, receives: USDT })).toMatchObject({ ok: false, code: "TX_WRONG_SENDER" });
+    expect(verifyTx(relayed, { from: WALLET, receives: "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436" })).toMatchObject({ ok: false });
+  });
+
+  it("still requires the wallet as sender when no delivered token is given", () => {
+    expect(verifyTx(relayed, { from: WALLET })).toMatchObject({ ok: false, code: "TX_WRONG_SENDER" });
+  });
+
+  it("still rejects a reverted relayed swap", () => {
+    expect(verifyTx({ ...relayed, status: "reverted" }, { from: WALLET, receives: USDT })).toMatchObject({ code: "TX_REVERTED" });
   });
 });

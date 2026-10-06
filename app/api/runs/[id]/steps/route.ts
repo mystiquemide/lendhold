@@ -41,7 +41,8 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
   let expectedTo: string | undefined;
   let selector: string | undefined;
   if (step.kind === "swap" && run.path === "skill") {
-    // The user's own Agentic Wallet routes the swap, so only the sender and success can be checked.
+    // The user's own Agentic Wallet routes the swap, so only success and the sender (or, for relayed swaps,
+    // the token arriving in the wallet) can be checked.
   } else if (step.kind === "swap") {
     const built = await getBuiltTx(plan.id, idx);
     if (!built) {
@@ -77,8 +78,8 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
   }
 
   const result = verifyTx(
-    { status: receipt.status, from: receipt.from, to: receipt.to, input: tx.input },
-    { from: run.address, to: expectedTo, selector },
+    { status: receipt.status, from: receipt.from, to: receipt.to, input: tx.input, logs: receipt.logs },
+    { from: run.address, to: expectedTo, selector, receives: step.kind === "swap" ? step.swap?.to : undefined },
   );
   if (!result.ok) {
     await upsertStep({ runId: id, idx, kind: step.kind, status: "failed", txHash, error: result.message });

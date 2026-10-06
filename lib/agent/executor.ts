@@ -35,7 +35,7 @@ export const defaultChainReader: ChainReader = {
     try {
       const receipt = await chain.waitForTransactionReceipt({ hash, timeout: timeoutMs });
       const tx = await chain.getTransaction({ hash });
-      return { status: receipt.status, from: receipt.from, to: receipt.to, input: tx.input };
+      return { status: receipt.status, from: receipt.from, to: receipt.to, input: tx.input, logs: receipt.logs };
     } catch {
       return null;
     }
@@ -363,7 +363,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
         const hash = order.txHash as `0x${string}`;
         const observed = await d.chain.waitForTx(hash, d.receiptTimeoutMs);
         if (!observed) return `Swap transaction ${hash} was not mined within ${Math.round(d.receiptTimeoutMs / 1000)}s`;
-        const result = verifyTx(observed, { from: owner });
+        const result = verifyTx(observed, { from: owner, receives: step.swap?.to });
         if (!result.ok) return result.message;
         await write(step.idx, step.kind, { status: "confirmed", txHash: hash, orderId, error: null });
         return null;
