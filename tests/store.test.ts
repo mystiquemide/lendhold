@@ -169,8 +169,12 @@ describe("landing queries", () => {
     (await updateRunStatus(empty.id, "done", db));
 
     const rows = (await listProofRuns(3, db));
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ runId: done.id, path: "agent", action: "deposit", confirmedCount: 2, lastTxHash: "0xa1" });
+    expect(rows).toHaveLength(2);
+    expect(rows.find((r) => r.runId === done.id)).toMatchObject({
+      path: "agent", action: "deposit", status: "done", confirmedCount: 2, stepCount: 2, lastTxHash: "0xa1",
+    });
+    // A run that stopped partway still shows its confirmed transactions.
+    expect(rows.find((r) => r.runId === failed.id)).toMatchObject({ status: "failed", confirmedCount: 1, stepCount: 1 });
   });
 
   it("totals finished runs, confirmed txs and wallets for proof", async () => {

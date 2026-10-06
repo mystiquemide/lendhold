@@ -458,6 +458,9 @@ export interface ProofRun {
   action: string;
   token: string | null;
   confirmedCount: number;
+  /** Steps in the run, confirmed or not. Less than confirmedCount never; more when the run stopped partway. */
+  stepCount: number;
+  status: RunStatus;
   lastTxHash: string;
   finishedAt: number;
 }
@@ -471,18 +474,21 @@ export async function listProofRuns(limit: number, sql?: Sql): Promise<ProofRun[
     action: string;
     token: string | null;
     updated_at: number | string;
+    status: RunStatus;
     confirmed: number | string;
+    steps: number | string;
     last_tx: string;
   }>(
-    `SELECT r.id, r.path, r.action, r.token, r.updated_at,
+    `SELECT r.id, r.path, r.action, r.token, r.updated_at, r.status,
             COUNT(s.idx) AS confirmed,
+            (SELECT COUNT(*) FROM run_steps s3 WHERE s3.run_id = r.id) AS steps,
             (SELECT s2.tx_hash FROM run_steps s2
                WHERE s2.run_id = r.id AND s2.status = 'confirmed' AND s2.tx_hash IS NOT NULL AND s2.tx_hash != ''
                ORDER BY s2.idx DESC LIMIT 1) AS last_tx
      FROM runs r JOIN run_steps s ON s.run_id = r.id
-     WHERE r.status = 'done' AND r.action IS NOT NULL
+     WHERE r.status IN ('done', 'failed', 'stopped') AND r.action IS NOT NULL
        AND s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != ''
-     GROUP BY r.id
+     GROUP BY r.id, r.path, r.action, r.token, r.updated_at, r.status
      ORDER BY r.updated_at DESC, r.id DESC
      LIMIT ?`,
     [limit],
@@ -493,6 +499,8 @@ export async function listProofRuns(limit: number, sql?: Sql): Promise<ProofRun[
     action: r.action,
     token: r.token,
     confirmedCount: Number(r.confirmed),
+    stepCount: Number(r.steps),
+    status: r.status,
     lastTxHash: r.last_tx,
     finishedAt: Number(r.updated_at),
   }));

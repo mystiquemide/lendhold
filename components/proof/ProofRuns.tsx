@@ -83,7 +83,9 @@ export async function ProofRuns() {
                   <h3 className="text-[22px] leading-7 text-ink">{labels[i]}</h3>
                   <p className="inline-flex items-center gap-1.5 text-[15px] leading-5 text-safe">
                     <CircleCheck size={16} strokeWidth={1.75} aria-hidden="true" />
-                    {run.confirmedCount} {run.confirmedCount === 1 ? "transaction" : "transactions"} confirmed
+                    {run.status === "done"
+                      ? `${run.confirmedCount} ${run.confirmedCount === 1 ? "transaction" : "transactions"} confirmed`
+                      : `${run.confirmedCount} of ${run.stepCount} confirmed, then stopped`}
                   </p>
                 </div>
                 <Pill
