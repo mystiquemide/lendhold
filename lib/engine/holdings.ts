@@ -113,7 +113,7 @@ export async function getHoldings(address: string): Promise<Holding[]> {
       }
       const match = bstockByTicker.get(ticker.toUpperCase());
       if (!match) {
-        return { ...base, status: "unsupported", reason: "No matching bStock to convert into" };
+        return { ...base, status: "unsupported", reason: "No bStock for this stock yet, so it can't be borrowed against" };
       }
       const matchingBStock = { address: match.address, symbol: match.symbol };
       return (await room(match))

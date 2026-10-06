@@ -11,6 +11,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
 import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
+import { StockHeader, useStock } from "./StockHeader";
 import { useWallet } from "./WalletProvider";
 
 const USDT = "0x55d398326f99059fF775485246999027B3197955";
@@ -37,6 +38,7 @@ const reopens = (t: number | null) =>
 export function BuyScreen({ token }: { token: string }) {
   const { address } = useWallet();
   const router = useRouter();
+  const stock = useStock(token);
   const [status, setStatus] = useState<Status | null | undefined>(undefined);
   const [usdt, setUsdt] = useState<number | null>(null);
   const [amount, setAmount] = useState("");
@@ -114,10 +116,8 @@ export function BuyScreen({ token }: { token: string }) {
       </Link>
 
       <Panel className="flex flex-col gap-5">
-        <div>
-          <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">Buy {status.symbol}</h1>
-          <p className="text-[15px] leading-6 text-muted">Pay with USDT on BNB Chain</p>
-        </div>
+        <StockHeader stock={stock} fallbackSymbol={status.symbol} title={stock ? `Buy ${stock.name}` : `Buy ${status.symbol}`} price={status.price?.perShare ?? null} />
+        <p className="-mt-2 text-[15px] leading-6 text-body">Pay with USDT on BNB Chain. You hold the shares in your own wallet.</p>
 
         {closed && (
           <Notice tone="watch" title="Trading is closed">

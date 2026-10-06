@@ -10,8 +10,9 @@ import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
-import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
+import { api, ApiError, fmtAmount, fmtShares, fmtUsd, GENERIC_ERROR } from "@/lib/client/api";
 import { PANE_LEFT_BOTTOM, PANE_LEFT_TOP, PANE_RIGHT, SPLIT } from "./split";
+import { StockHeader, useStock } from "./StockHeader";
 import { useWallet } from "./WalletProvider";
 
 interface Holding {
@@ -25,6 +26,7 @@ interface Holding {
   status: "ready" | "convert" | "unsupported";
   reason: string;
   matchingBStock?: { address: string; symbol: string };
+  logoUrl?: string | null;
 }
 
 interface PlanResponse {
@@ -35,6 +37,7 @@ interface PlanResponse {
     notices: { code: string; message: string }[];
     blockers: { code: string; message: string }[];
     display: {
+      aprPct: number | null;
       sharesBefore: number | null;
       sharesAfter: number | null;
       riskPricePerShare: number | null;
@@ -60,11 +63,23 @@ const units = (raw: string, decimals: number) => Number(formatUnits(BigInt(raw),
 /** Two decimals, rounded down, so a prefilled amount never exceeds the limit it came from. */
 const floor2 = (n: number) => (Math.floor(n * 100) / 100).toFixed(2);
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 border-b border-line py-3 text-[15px] leading-5 last:border-b-0">
-      <span className="text-body">{label}</span>
-      <span className="num text-right text-ink">{value}</span>
+    <div className="border-b border-line py-3 last:border-b-0">
+      <div className="flex items-center justify-between gap-4 text-[15px] leading-5">
+        <span className="text-body">{label}</span>
+        <span className="num text-right text-ink">{value}</span>
+      </div>
+      {note && <p className="mt-1 text-[13px] leading-5 text-muted">{note}</p>}
+    </div>
+  );
+}
+
+function Tile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 rounded-input border border-line px-3 py-2.5">
+      <span className="text-[12px] leading-4 text-muted">{label}</span>
+      <span className="num truncate text-[15px] leading-5 text-ink">{value}</span>
     </div>
   );
 }
@@ -152,6 +167,7 @@ export function BorrowScreen({ token }: { token: string }) {
   }, [amount, receive, marketId, plan]);
 
   const collateralAddress = holding?.platform === "ondo" ? holding.matchingBStock?.address : holding?.address;
+  const stock = useStock(collateralAddress);
   useEffect(() => {
     if (!collateralAddress || !address) return;
     let live = true;
@@ -179,6 +195,9 @@ export function BorrowScreen({ token }: { token: string }) {
   }, [sizing, p]);
   const d = p?.display;
   const loanIsUsdt = m?.loanSymbol === "USDT";
+  const currentMarket = m ? markets?.markets.find((o) => o.id.toLowerCase() === m.id.toLowerCase()) : undefined;
+  const lltvPct = currentMarket ? Math.round(currentMarket.lltv * 100) : null;
+  const apr = p?.display.aprPct ?? currentMarket?.aprPct ?? null;
   const current = plannedFor === `${amount}|${receive}|${marketId}`;
   const liveMarkets = (markets?.markets ?? []).filter((o) => o.availableUsd > 0);
   const canReview = !!p && current && blockers.length === 0 && !invalid && !planning && amount !== "";
@@ -206,6 +225,8 @@ export function BorrowScreen({ token }: { token: string }) {
   }
 
   const h = holding!;
+  const collateralShares = d?.sharesAfter ?? h.shares;
+  const collateralValue = h.perSharePrice != null && collateralShares != null ? collateralShares * h.perSharePrice : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -216,13 +237,18 @@ export function BorrowScreen({ token }: { token: string }) {
 
       <div className={cn(SPLIT, "gap-5")}>
         <div className={cn(PANE_LEFT_TOP, "lg:gap-5")}>
-          <div>
-            <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">Borrow against {h.name}</h1>
-            <p className="num text-[15px] leading-6 text-muted">
-              {fmtShares(h.shares)} {h.ticker} held
-            </p>
+          <div className="flex flex-col gap-3">
+            <StockHeader
+              stock={stock ?? { address: h.address, symbol: h.symbol, name: h.name, ticker: h.ticker, logoUrl: h.logoUrl ?? null, perShare: h.perSharePrice, borrowable: true }}
+              title={`Borrow against ${h.name}`}
+              price={h.perSharePrice}
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <Tile label="You hold" value={`${fmtShares(h.shares)} ${h.ticker}`} />
+              <Tile label="Worth now" value={h.perSharePrice != null ? fmtUsd(h.shares * h.perSharePrice) : "-"} />
+            </div>
             {h.platform === "ondo" && h.matchingBStock && (
-              <p className="mt-2 text-[13px] leading-5 text-body">
+              <p className="text-[13px] leading-5 text-body">
                 Your {h.symbol} becomes {h.matchingBStock.symbol} first.
                 {d?.sharesBefore != null && d.sharesAfter != null && d.conversionCostPct != null
                   ? ` ${fmtShares(d.sharesBefore)} shares become ${fmtShares(d.sharesAfter)} shares, ${Math.max(d.conversionCostPct, 0).toFixed(2)}% conversion cost.`
@@ -231,6 +257,7 @@ export function BorrowScreen({ token }: { token: string }) {
             )}
           </div>
 
+          <div className="flex flex-col gap-3">
           <div>
             <label htmlFor="amount" className="text-[13px] leading-5 text-muted">
               Amount to borrow
@@ -262,29 +289,43 @@ export function BorrowScreen({ token }: { token: string }) {
               {invalid ? "Enter a number like 25 or 25.50." : "Prefilled with the safe amount. Change it if you need less."}
             </p>
           </div>
+          {safe !== null && (
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  touched.current = true;
+                  setAmount(floor2(safe));
+                }}
+                className="flex flex-col items-start gap-0.5 rounded-input border border-safe/40 bg-safe-tint px-3 py-2.5 text-left transition-colors hover:border-safe"
+              >
+                <span className="text-[12px] leading-4 text-safe">Safe up to</span>
+                <span className="num text-[15px] leading-5 text-ink">{fmtAmount(safe)}</span>
+              </button>
+              <Tile label="Most" value={max !== null ? fmtAmount(max) : "-"} />
+              <Tile label="Minimum" value={minLoan !== null ? fmtAmount(minLoan) : "-"} />
+            </div>
+          )}
+          </div>
         </div>
 
         <div className={cn(PANE_RIGHT, "lg:gap-5")}>
 
-          {safe !== null && (
-            <div>
-              <div className="flex items-center justify-between gap-4 border-b border-line py-3 text-[15px] leading-5">
-                <span className="text-body">Safe up to</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    touched.current = true;
-                    setAmount(floor2(safe));
-                  }}
-                  className="num text-right text-ink underline decoration-line underline-offset-4 hover:decoration-ink"
-                >
-                  {fmtAmount(safe)} {m?.loanSymbol}
-                </button>
-              </div>
-              {max !== null && <Row label="Most" value={`${fmtAmount(max)} ${m?.loanSymbol}`} />}
-              {minLoan !== null && <Row label="Minimum" value={`${fmtAmount(minLoan)} ${m?.loanSymbol}`} />}
+          <section aria-labelledby="terms-title" className="flex flex-col">
+            <h2 id="terms-title" className="text-sm leading-none uppercase tracking-[0.1em] text-[#333333]">Loan terms</h2>
+            <div className="mt-3">
+              <Row label="Interest" value={apr != null ? `${apr.toFixed(2)}% a year` : "-"} note="Variable. Set by Lista from how much of the market is borrowed." />
+              <Row label="Lendhold fee" value="None" note="You only pay network gas, a few cents per step." />
+              <Row
+                label="Collateral"
+                value={collateralShares != null ? `${fmtShares(collateralShares)} ${h.ticker}` : "-"}
+                note={collateralValue != null ? `${fmtUsd(collateralValue)} of stock, deposited in Lista and still yours` : undefined}
+              />
+              <Row label="Liquidation point" value={lltvPct != null ? `${lltvPct}% loan to value` : "-"} note={d?.riskPricePerShare != null ? `Reached if ${h.ticker} falls to ${fmtUsd(d.riskPricePerShare)} a share` : undefined} />
+              <Row label="Term" value="No fixed term" note="Repay any time, in part or in full." />
+              <Row label="Lender" value={m ? `Lista Lending, ${m.loanSymbol} market` : "Lista Lending"} />
             </div>
-          )}
+          </section>
 
           {blockers.length === 0 && d?.riskPricePerShare != null && d.cushionPct != null && d.health && h.perSharePrice && (
             <CushionRuler

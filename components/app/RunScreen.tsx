@@ -14,6 +14,8 @@ import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client
 import { fromJson } from "@/lib/json";
 import type { Plan, PlanAction, Step } from "@/lib/engine/planner";
 import type { Holding } from "@/lib/engine/holdings";
+import { BuyConfirmation } from "./BuyConfirmation";
+import { StockHeader, useStock } from "./StockHeader";
 import { useWallet } from "./WalletProvider";
 
 type StepStatus = "pending" | "simulated" | "sent" | "confirmed" | "skipped" | "failed";
@@ -59,6 +61,8 @@ function walletError(err: unknown): Stop["kind"] | string {
 
 export function RunScreen({ runId }: { runId: string }) {
   const { address, wallet, onBsc } = useWallet();
+  const [stockAddr, setStockAddr] = useState<string | null>(null);
+  const stock = useStock(stockAddr);
   const [run, setRun] = useState<RunRecord | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [phase, setPhase] = useState<Record<number, Phase>>({});
@@ -70,7 +74,11 @@ export function RunScreen({ runId }: { runId: string }) {
   const load = useCallback(async () => {
     const { run: r } = await api<{ run: RunRecord }>(`/api/runs/${runId}`);
     setRun(r);
-    if (r.planJson) setPlan((p) => p ?? fromJson<Plan>(r.planJson!));
+    if (r.planJson) {
+      const parsed = fromJson<Plan>(r.planJson);
+      setPlan((p) => p ?? parsed);
+      setStockAddr(parsed.action === "buy" ? parsed.token : (parsed.market?.params.collateralToken ?? parsed.token));
+    }
     return r;
   }, [runId]);
 
@@ -262,15 +270,21 @@ export function RunScreen({ runId }: { runId: string }) {
   const d = plan.display;
   const title = TITLES[plan.action];
   const owes = !!d.debt && d.debt.amount > 0n;
+  const boughtCard = done && plan.action === "buy";
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
       <title>{`${done ? title.done : title.running} | Lendhold`}</title>
       <Panel className="flex flex-col gap-6">
-        <div>
-          <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">{done ? title.done : title.running}</h1>
-          {!done && <p className="text-[15px] leading-6 text-body">Sign each step in your wallet. Keep this page open.</p>}
-        </div>
+        {boughtCard ? (
+          <BuyConfirmation plan={plan} stock={stock} priceNow={price} />
+        ) : (
+          <div className="flex flex-col gap-4">
+            <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">{done ? title.done : title.running}</h1>
+            {plan.action === "buy" && <StockHeader stock={stock} fallbackSymbol={plan.token.slice(0, 8)} as="h2" size="md" className="rounded-input bg-canvas p-4" />}
+            {!done && <p className="text-[15px] leading-6 text-body">Sign each step in your wallet. Keep this page open.</p>}
+          </div>
+        )}
 
         {!mine && !done && (
           <Notice tone="watch" title={address && wallet ? "Different wallet" : "Connect to sign"}>
@@ -280,7 +294,7 @@ export function RunScreen({ runId }: { runId: string }) {
           </Notice>
         )}
 
-        {done && (
+        {done && !boughtCard && (
           <div className="-mt-3">
             {summaryRows(plan).map((r) => (
               <SummaryRow key={r.label} {...r} />
@@ -291,6 +305,7 @@ export function RunScreen({ runId }: { runId: string }) {
           <CushionRuler riskPrice={d.riskPricePerShare} price={price} cushionPct={d.cushionPct} health={d.health} priceLabel="Price now" />
         )}
 
+        <StepsWrap folded={boughtCard}>
         <ol className="flex flex-col">
           {plan.steps.map((s, i) => {
             const rec = run.steps.find((r) => r.idx === s.idx);
@@ -316,6 +331,7 @@ export function RunScreen({ runId }: { runId: string }) {
             );
           })}
         </ol>
+        </StepsWrap>
 
         {stop && (
           <Notice
@@ -337,7 +353,16 @@ export function RunScreen({ runId }: { runId: string }) {
             <p className="text-[13px] leading-5 text-muted">
               {confirmedCount} transaction{confirmedCount === 1 ? "" : "s"} confirmed on BNB Chain
             </p>
-            {owes && plan.market ? (
+            {boughtCard && stock?.borrowable ? (
+              <>
+                <Pill variant="primary" fullWidth href={`/app/borrow/${plan.token}`}>
+                  Borrow against {stock.ticker}
+                </Pill>
+                <Pill variant="secondary" on="white" fullWidth href="/app">
+                  Back to your stocks
+                </Pill>
+              </>
+            ) : owes && plan.market ? (
               <Pill variant="primary" fullWidth href={`/app/loan/${plan.market.id}`}>
                 View my loan
               </Pill>
@@ -350,6 +375,21 @@ export function RunScreen({ runId }: { runId: string }) {
         )}
       </Panel>
     </div>
+  );
+}
+
+/** Folds the transaction steps under a disclosure on the purchase card, so the position leads. */
+function StepsWrap({ folded, children }: { folded: boolean; children: React.ReactNode }) {
+  if (!folded) return <>{children}</>;
+  return (
+    <details className="group rounded-input border border-line px-4 py-1">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between text-[15px] leading-6 text-ink">
+        Transaction details
+        <span className="text-[13px] text-muted group-open:hidden">Show</span>
+        <span className="hidden text-[13px] text-muted group-open:inline">Hide</span>
+      </summary>
+      <div className="pb-2">{children}</div>
+    </details>
   );
 }
 

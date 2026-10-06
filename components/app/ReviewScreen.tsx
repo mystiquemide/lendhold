@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
 import { cn } from "@/components/ui/cn";
 import { PANE_LEFT_BOTTOM, PANE_LEFT_TOP, PANE_RIGHT, SPLIT } from "./split";
+import { StockHeader, useStock } from "./StockHeader";
 import { useWallet } from "./WalletProvider";
 
 type Amount = { symbol: string; amount: string; decimals: number };
@@ -63,6 +64,14 @@ const STATUS = {
   simulated_failed: { label: "Simulation failed", ok: false },
   check_failed: { label: "Check failed", ok: false },
 } as const;
+
+const REVIEW_TITLE: Record<string, string> = {
+  borrow: "Review your loan",
+  repay: "Review repayment",
+  deposit: "Review deposit",
+  withdraw: "Review withdrawal",
+  buy: "Review your purchase",
+};
 
 const CONFIRM_LABEL: Record<string, string> = {
   borrow: "Confirm and borrow",
@@ -161,6 +170,8 @@ function useCountdown(until: number | null) {
 export function ReviewScreen({ planId, amount, receive }: { planId: string; amount: string | null; receive: string | null }) {
   const { address, readOnly } = useWallet();
   const router = useRouter();
+  const [tokenAddr, setTokenAddr] = useState<string | null>(null);
+  const stock = useStock(tokenAddr);
   const [res, setRes] = useState<ReviewResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,7 +181,11 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
   useEffect(() => {
     let live = true;
     api<ReviewResponse>(`/api/plan/${planId}`)
-      .then((r) => live && setRes(r))
+      .then((r) => {
+        if (!live) return;
+        setRes(r);
+        setTokenAddr(r.plan.action === "buy" ? r.plan.token : (r.plan.market?.params.collateralToken ?? r.plan.token));
+      })
       .catch((err) => live && setError(err instanceof ApiError ? err.message : GENERIC_ERROR));
     return () => {
       live = false;
@@ -239,7 +254,8 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
       </Link>
       <div className={cn(SPLIT, "gap-6")}>
         <div className={cn(PANE_LEFT_TOP, "lg:gap-6")}>
-          <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">Review</h1>
+          <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">{REVIEW_TITLE[plan.action] ?? "Review"}</h1>
+          <StockHeader stock={stock} fallbackSymbol={plan.token.slice(0, 8)} as="h2" size="md" className="rounded-input bg-canvas p-4" />
 
           <div className="-mt-3">
             {topRows(res.plan).map((r) => (
