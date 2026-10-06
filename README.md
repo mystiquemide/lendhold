@@ -17,7 +17,15 @@ People outside the US who hold US stocks and need dollars usually have two optio
 On BNB Chain, 618 stock tokens are live across three issuers: 442 Ondo, 130 xStocks and 46 bStocks (Binance Web3 RWA API, 5 Oct 2026).
 Only bStocks are accepted as collateral on BSC lending markets, so most holders have no way to borrow against what they own.
 Where borrowing does exist, on Lista Lending, it runs through interfaces built for DeFi users: approve, deposit, borrow and swap, one step at a time.
-Lendhold turns that into one reviewed plan, signed from your own wallet.
+
+## The solution
+
+Lendhold lets you borrow dollars against your stock tokens instead of selling them. Repay the loan and the stock comes back to you.
+
+- **One flow.** Pick a stock and an amount. Lendhold builds the approve, deposit, borrow and optional swap to USDT, checks each step on-chain, and you sign from your own wallet.
+- **Ondo works too.** Ondo tokens are swapped into the matching bStock first. You see the shares you'll end up with and what the swap costs before you sign.
+- **Risk up front.** You see the safe amount and the price where Lista would start selling your stock. The safe amount drops when the US market is closed, because prices can jump at the open.
+- **Agents can use it.** The same plans run through a Binance Agentic Wallet, so your AI tool can borrow for you after you approve the plan.
 
 ## Try it in 60 seconds
 
