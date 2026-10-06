@@ -3,7 +3,7 @@ import { Logo } from "@/components/ui/Logo";
 
 const PRODUCT = [
   { href: "/app", label: "Open app" },
-  { href: "/#how-it-works", label: "How it works" },
+  { href: "/how-it-works", label: "How it works" },
   { href: "/proof", label: "Proof" },
   { href: "/skill", label: "For agents" },
 ];

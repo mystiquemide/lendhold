@@ -22,7 +22,7 @@ export function Hero() {
           <Pill variant="primary" href="/app" className="w-full sm:w-auto">
             See what you can borrow
           </Pill>
-          <Pill variant="secondary" on="cloud" href="#how-it-works" className="w-full sm:w-auto">
+          <Pill variant="secondary" on="cloud" href="/how-it-works" className="w-full sm:w-auto">
             How it works
           </Pill>
         </StaggerItem>

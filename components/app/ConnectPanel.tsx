@@ -76,7 +76,7 @@ export function ConnectPanel() {
         </div>
       </Panel>
       <p className="mt-6 text-center">
-        <TextLink href="/#how-it-works" className="text-[15px]">
+        <TextLink href="/how-it-works" className="text-[15px]">
           New here? See how it works
         </TextLink>
       </p>
