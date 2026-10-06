@@ -24,7 +24,8 @@ const pagesSchema = z.array(
     tokenAssets: z.array(
       z.object({
         tokenContractAddress: evmAddress,
-        symbol: z.string(),
+        // Some tokens come back without a symbol. Holdings match by address, so an empty one is fine.
+        symbol: z.string().nullable().optional().transform((v) => v ?? ""),
         balance: z.string(),
         rawBalance: bigintString,
         tokenPrice: z

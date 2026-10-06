@@ -71,6 +71,13 @@ describe("getBalances", () => {
     expect(out[1]).toMatchObject({ symbol: "SIREN", decimals: 9, usdValue: null, amountFormatted: "11716" });
   });
 
+  it("keeps a token that comes back without a symbol instead of failing the whole wallet", async () => {
+    api.getAllTokenBalancesByAddress.mockReturnValue(respond([{ page: 1, tokenAssets: [asset({}), asset({ symbol: null })] }]));
+    const out = await getBalances(USER);
+    expect(out).toHaveLength(2);
+    expect(out[1].symbol).toBe("");
+  });
+
   it("pages until a short page", async () => {
     const full = Array.from({ length: 100 }, (_, i) =>
       asset({ tokenContractAddress: `0x${(i + 1).toString(16).padStart(40, "0")}` }),

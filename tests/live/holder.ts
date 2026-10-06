@@ -2,7 +2,8 @@ import { parseAbiItem, type Address } from "viem";
 import { createChainClient } from "@/lib/chain.core";
 import { NVDAB } from "../helpers";
 
-const KNOWN_HOLDER: Address = "0xE27a37fD7B3B6C236Df7DcDb1f252c0e738F53D5";
+// Held 33 NVDAB on 6 Oct 2026. Re-check with balanceOf if live tests start failing on "no NVDAB".
+const KNOWN_HOLDER: Address = "0x31DB4e1B106018f8A2bc9eE844Cd38A2d019246a";
 const balanceOf = parseAbiItem("function balanceOf(address) view returns (uint256)");
 const transfer = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)");
 
