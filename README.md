@@ -52,8 +52,12 @@ BNB Smart Chain mainnet (chain ID 56). Lending on Lista Moolah at [`0x8F73…5D8
 | 5 Oct 2026 | Browser wallet | Withdraw TSLAB | 0.0189 → 0 | [withdraw](https://bscscan.com/tx/0xee6a242e10a870d47a2c378b48203b5567bcd254eba4efbf1f1d79e62847386a) |
 | 5 Oct 2026 | Browser wallet | Deposit TSLAB | 0 → 0.0080 | [approve](https://bscscan.com/tx/0xbe39e809eef6962e3a6fa8d383f29b49556443eef387aa12e7131858130ab97a), [deposit](https://bscscan.com/tx/0xea8d755615832cdd6fccc5e0c6baf2be016dcb662eb16844af881bd1b8765cf5) |
 | 5 Oct 2026 | Browser wallet | Withdraw TSLAB from the loan screen | 0.0080 → 0 | [withdraw](https://bscscan.com/tx/0xd507edbad8f608c34c37488e0c633e9b096e26d1e719637d7d64d968ebe6f2e1) |
+| 6 Oct 2026 | Agentic Wallet | Buy NVDAB with 30 USDT | wallet 0 → 0.1236 | [swap](https://bscscan.com/tx/0x04745badf0c059ce0082f8f81539702cd26323517a13d958335fcabd48d81529) |
+| 6 Oct 2026 | Agentic Wallet | Deposit NVDAB, borrow 15.20 USD1 | 0 → 0.1360 | [approve](https://bscscan.com/tx/0x7d219f1afc969965df06e4a85eaf67fd499e780ac685021518d3b54c3a8a4436), [deposit](https://bscscan.com/tx/0xd19b103a4aa76f0bdb7823ededf6b98ed4d10a7cec9602464c40cb81f9f8c049), [borrow](https://bscscan.com/tx/0x37c7e6d003b59f8105b1d2f5e8910cb3e09e4f752c24de8d8ac2bb7dedc7bb61) |
+| 6 Oct 2026 | Agentic Wallet | Repay all | 0.1360 → 0.1360, debt 0 | [approve](https://bscscan.com/tx/0x07ba5b96e8c263d545867cdc814b7025d4472a35db951fe699f09a72c8848f55), [repay](https://bscscan.com/tx/0xa1271b5108cc8e7b8b6f032a74a2dc52dad7cf03fa0b4fa26bd2eff6900ac16a) |
+| 6 Oct 2026 | Agentic Wallet | Withdraw NVDAB | 0.1360 → 0 | [withdraw](https://bscscan.com/tx/0x145ef630f43b2106d84b7679ddacf1dd43a705fd8f036be3ebab4a291e7969c1) |
 
-Borrow, repay and Ondo conversion are built and tested but haven't run on mainnet yet.
+Borrow and repay have run on mainnet through the Agentic Wallet. Browser-wallet borrow and Ondo conversion are built and tested but haven't run on mainnet yet.
 
 ## How it works
 
@@ -98,7 +102,7 @@ Then ask: "Borrow $20 against my NVIDIA bStock." The agent stops on a failed pre
 ## Limits and honest notes
 
 - Unaudited. Use small amounts.
-- Borrow, repay and Ondo conversion haven't run on mainnet yet. Only deposit and withdraw have, on both paths.
+- Borrow and repay have run on mainnet on the agent path only. Browser-wallet borrow and Ondo conversion haven't yet.
 - The loan asset is whatever the chosen Lista market lends, often USD1 or U. Review says "You owe" in that asset, even when you receive USDT.
 - Ondo holders keep close to the same share count, minus a small conversion cost shown on Review, and the token changes: Ondo is swapped into the matching bStock before it's deposited.
 - Ondo conversion needs both assets trading, so it pauses when the US market is closed.
