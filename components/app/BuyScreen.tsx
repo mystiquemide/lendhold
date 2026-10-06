@@ -10,7 +10,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
-import { api, ApiError, fmtAmount, fmtShares } from "@/lib/client/api";
+import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
 import { useWallet } from "./WalletProvider";
 
 const USDT = "0x55d398326f99059fF775485246999027B3197955";
@@ -74,7 +74,7 @@ export function BuyScreen({ token }: { token: string }) {
         setQuote(q);
         setQuotedFor(amount);
       } catch (err) {
-        if (id === seq.current) setError(err instanceof ApiError ? err.message : "Something went wrong on our side");
+        if (id === seq.current) setError(err instanceof ApiError ? err.message : GENERIC_ERROR);
       } finally {
         if (id === seq.current) setQuoting(false);
       }

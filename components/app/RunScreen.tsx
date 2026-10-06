@@ -1,5 +1,6 @@
 "use client";
 
+import { friendlyChainError } from "@/lib/chain-errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowUpRight, CircleCheck, CircleX, LoaderCircle } from "lucide-react";
 import { formatUnits, toHex } from "viem";
@@ -9,7 +10,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
-import { api, ApiError, fmtAmount, fmtShares } from "@/lib/client/api";
+import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
 import { fromJson } from "@/lib/json";
 import type { Plan, PlanAction, Step } from "@/lib/engine/planner";
 import type { Holding } from "@/lib/engine/holdings";
@@ -53,7 +54,7 @@ const amt = (a: { symbol: string; amount: bigint; decimals: number }) =>
 function walletError(err: unknown): Stop["kind"] | string {
   const e = err as { code?: number; message?: string };
   if (e?.code === 4001) return "cancelled";
-  return e?.message ? `Your wallet returned an error: ${e.message}` : "Your wallet didn't respond. Try again.";
+  return e?.message ? friendlyChainError(e.message) : "Your wallet didn't respond. Nothing was sent. Try again.";
 }
 
 export function RunScreen({ runId }: { runId: string }) {
@@ -76,7 +77,7 @@ export function RunScreen({ runId }: { runId: string }) {
   useEffect(() => {
     // Loading the run record on mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    load().catch((err) => setLoadError(err instanceof ApiError ? err.message : "Something went wrong on our side"));
+    load().catch((err) => setLoadError(err instanceof ApiError ? err.message : GENERIC_ERROR));
   }, [load]);
 
   const mine = !!run?.address && !!address && run.address.toLowerCase() === address.toLowerCase();

@@ -532,7 +532,7 @@ describe("deposit", () => {
 
     chainFns.erc20Balance.mockResolvedValue(2n * E18);
     const big = await buildPlan({ ...base, action: "deposit", amount: "5" });
-    expect(big.blockers).toEqual([{ code: "INSUFFICIENT_BALANCE", message: "You hold less NVDAB than requested" }]);
+    expect(big.blockers).toEqual([{ code: "INSUFFICIENT_BALANCE", message: "You hold 2 NVDAB. Enter that or less." }]);
     expect(big.steps).toEqual([]);
 
     const zero = await buildPlan({ ...base, action: "deposit", amount: "0" });
@@ -541,5 +541,19 @@ describe("deposit", () => {
     pickMarketFor.mockResolvedValue(null);
     const noMarket = await buildPlan({ ...base, action: "deposit" });
     expect(noMarket.blockers.map((x) => x.code)).toEqual(["NO_MARKET"]);
+  });
+});
+
+describe("message formatting", () => {
+  it("token amounts: 4 decimals, rounded down, trimmed", async () => {
+    const { fmtToken } = await import("@/lib/engine/planner");
+    expect(fmtToken(135963425114211129n, 18)).toBe("0.1359");
+    expect(fmtToken(2n * 10n ** 18n, 18)).toBe("2");
+  });
+
+  it("reopen time in UTC, empty when unknown", async () => {
+    const { reopensText } = await import("@/lib/engine/planner");
+    expect(reopensText(Date.UTC(2026, 9, 7, 13, 30))).toBe(" It reopens at 13:30 UTC on 7 Oct.");
+    expect(reopensText(null)).toBe("");
   });
 });

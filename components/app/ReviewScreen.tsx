@@ -8,7 +8,7 @@ import { formatUnits } from "viem";
 import { Notice } from "@/components/ui/Notice";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { api, ApiError, fmtAmount, fmtShares } from "@/lib/client/api";
+import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
 import { cn } from "@/components/ui/cn";
 import { PANE_LEFT_BOTTOM, PANE_LEFT_TOP, PANE_RIGHT, SPLIT } from "./split";
 import { useWallet } from "./WalletProvider";
@@ -171,7 +171,7 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
     let live = true;
     api<ReviewResponse>(`/api/plan/${planId}`)
       .then((r) => live && setRes(r))
-      .catch((err) => live && setError(err instanceof ApiError ? err.message : "Something went wrong on our side"));
+      .catch((err) => live && setError(err instanceof ApiError ? err.message : GENERIC_ERROR));
     return () => {
       live = false;
     };
@@ -198,7 +198,7 @@ export function ReviewScreen({ planId, amount, receive }: { planId: string; amou
       const q = new URLSearchParams({ ...(amount ? { amount } : {}), ...(receive ? { receive } : {}) });
       router.replace(`/app/review/${r.plan.id}?${q}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong on our side");
+      setError(err instanceof ApiError ? err.message : GENERIC_ERROR);
       setRefreshing(false);
     }
   }, [res, address, amount, receive, router]);

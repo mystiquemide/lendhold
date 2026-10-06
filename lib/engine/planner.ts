@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { formatUnits, getAddress, type Address, type Hex } from "viem";
+import { getAddress, type Address, type Hex } from "viem";
 import { AppError } from "@/lib/errors";
 import {
   getAssetStatus,
@@ -170,6 +170,23 @@ export function fmtUp(amount: bigint, decimals: number): string {
   return `${cents / 100n}.${(cents % 100n).toString().padStart(2, "0")}`;
 }
 
+/** Token amount for messages: up to 4 decimals, rounded down, trailing zeros trimmed. */
+export function fmtToken(raw: bigint, decimals: number): string {
+  const n = Math.floor(toUnits(raw, decimals) * 1e4) / 1e4;
+  return n.toLocaleString("en-US", { maximumFractionDigits: 4 });
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** " It reopens at 13:30 UTC on 7 Oct." when the reopen time is known, otherwise "". */
+export function reopensText(ms: number | null | undefined): string {
+  if (!ms) return "";
+  const d = new Date(ms);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return ` It reopens at ${hh}:${mm} UTC on ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}.`;
+}
+
 /** Two decimals, rounded down, so a safe amount never reads higher than the one on screen. */
 export function fmtDown(amount: bigint, decimals: number): string {
   const cents = decimals >= 2 ? amount / 10n ** BigInt(decimals - 2) : amount * 10n ** BigInt(2 - decimals);
@@ -298,7 +315,7 @@ async function quoteLeg(
 ): Promise<SwapEval | null> {
   const e = await evaluateSwap(from, to, amountIn, user);
   if (!e) {
-    b.block("NO_QUOTE", `No route to swap ${from.symbol} to ${to.symbol} right now`);
+    b.block("NO_QUOTE", `We can't find a fair price to swap ${from.symbol} to ${to.symbol} right now. Try again in a few minutes.`);
     return null;
   }
   if (!e.acceptable) {
@@ -377,7 +394,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
   if (isOndo) {
     const match = await findBStockByTicker(token.ticker);
     if (!match) {
-      b.block("NO_CONVERSION", `No bStock to convert ${token.symbol} into`);
+      b.block("NO_CONVERSION", `There's no bStock for ${token.symbol} yet, so it can't be used as collateral.`);
       return finish(plan, b);
     }
     collateral = match;
@@ -386,7 +403,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
   const pick = await pickMarketFor(collateral, owner);
   const market = pick ? (takeMarket(pick.all, req.marketId) ?? pick.market) : null;
   if (!pick || !market) {
-    b.block("NO_MARKET", "No lending market with room right now");
+    b.block("NO_MARKET", "Lista has no room to lend against this stock right now. Try again later or pick another stock.");
     return finish(plan, b);
   }
   const chain = pick.chainStates.get(market.id)!;
@@ -397,7 +414,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
 
   const { session, statuses, allTrading } = await sessionFor(isOndo ? [token, collateral] : [collateral]);
   if (isOndo && !allTrading) {
-    b.block("ASSET_NOT_TRADING", `${token.symbol} cannot be converted right now (${statuses.find((s) => s.reasonCode && s.reasonCode.toUpperCase() !== "TRADING")?.reasonCode})`);
+    b.block("ASSET_NOT_TRADING", `${token.symbol} can't be converted while trading is paused.${reopensText(statuses.find((s) => s.reasonCode && s.reasonCode.toUpperCase() !== "TRADING")?.nextOpenTime ?? session.nextOpenTime)}`);
     b.notices.push(...sessionNotices(session));
     return finish(plan, b);
   }
@@ -407,7 +424,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
   if (req.collateralAmount && req.collateralAmount !== "all") {
     depositSource = parseAmount(req.collateralAmount, token.decimals, "collateralAmount");
     if (depositSource > walletBalance) {
-      b.block("INSUFFICIENT_BALANCE", `You hold less ${token.symbol} than requested`);
+      b.block("INSUFFICIENT_BALANCE", `You hold ${fmtToken(walletBalance, token.decimals)} ${token.symbol}. Enter that or less.`);
       return finish(plan, b);
     }
   }
@@ -491,7 +508,7 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
   } else {
     borrowAmount = sizing.safeBorrowNew;
     if (borrowAmount === 0n) {
-      b.block("NOTHING_TO_BORROW", "Nothing can be borrowed safely right now");
+      b.block("NOTHING_TO_BORROW", "Your loan is already at the safe limit. Add stock or repay some to borrow more.");
       return finish(plan, b);
     }
   }
@@ -698,7 +715,7 @@ async function planWithdraw(req: PlanRequest, owner: Address, token: RwaToken): 
   const all = !req.amount || req.amount === "all";
   const amount = all ? position.collateral : parseAmount(req.amount!, token.decimals);
   if (amount > position.collateral) {
-    b.block("ABOVE_DEPOSITED", `You only have ${formatUnits(position.collateral, token.decimals)} ${token.symbol} deposited`);
+    b.block("ABOVE_DEPOSITED", `You have ${fmtToken(position.collateral, token.decimals)} ${token.symbol} deposited. Enter that or less.`);
     return finish(plan, b);
   }
   const remainingCollateral = position.collateral - amount;
@@ -717,7 +734,7 @@ async function planWithdraw(req: PlanRequest, owner: Address, token: RwaToken): 
   plan.sizing = sizing;
   b.notices.push(...sizing.notices);
   if (debt > 0n && debt > sizing.maxBorrowTotal) {
-    b.block("WOULD_LIQUIDATE", "Withdrawing that much would leave your loan under-collateralized. Repay some first.");
+    b.block("WOULD_LIQUIDATE", "That would leave too little stock behind your loan. Withdraw less, or repay some first.");
     return finish(plan, b);
   }
   if (debt > 0n && sizing.safeBorrowNew === 0n) {
@@ -760,7 +777,7 @@ async function planDeposit(req: PlanRequest, owner: Address, token: RwaToken): P
   const b = new Builder();
   const plan = newPlan(b, req, owner, getAddress(token.address));
   if (token.platformId !== "bstock") {
-    b.block("NOT_BSTOCK", "Deposit a bStock. Convert Ondo tokens by borrowing against them");
+    b.block("NOT_BSTOCK", "Only bStocks can be deposited. To use an Ondo token, borrow against it and we'll convert it for you.");
     return finish(plan, b);
   }
 
@@ -774,7 +791,7 @@ async function planDeposit(req: PlanRequest, owner: Address, token: RwaToken): P
     const pick = await pickMarketFor(token, owner);
     const chosen = pick ? (takeMarket(pick.all, req.marketId) ?? pick.market) : null;
     if (!pick || !chosen) {
-      b.block("NO_MARKET", "No lending market with room right now");
+      b.block("NO_MARKET", "Lista has no room to lend against this stock right now. Try again later or pick another stock.");
       return finish(plan, b);
     }
     market = chosen;
@@ -797,7 +814,7 @@ async function planDeposit(req: PlanRequest, owner: Address, token: RwaToken): P
     return finish(plan, b);
   }
   if (amount > balance) {
-    b.block("INSUFFICIENT_BALANCE", `You hold less ${token.symbol} than requested`);
+    b.block("INSUFFICIENT_BALANCE", `You hold ${fmtToken(balance, token.decimals)} ${token.symbol}. Enter that or less.`);
     return finish(plan, b);
   }
 
@@ -865,7 +882,7 @@ async function planBuy(req: PlanRequest, owner: Address, token: RwaToken): Promi
   const { session, statuses, allTrading } = await sessionFor([token]);
   b.notices.push(...sessionNotices(session));
   if (!allTrading) {
-    b.block("ASSET_NOT_TRADING", `${token.symbol} cannot be bought right now (${statuses[0]?.reasonCode})`);
+    b.block("ASSET_NOT_TRADING", `${token.symbol} can't be bought while trading is paused.${reopensText(statuses[0]?.nextOpenTime ?? session.nextOpenTime)}`);
     return finish(plan, b);
   }
   const bToken = await stockSwapToken(token);

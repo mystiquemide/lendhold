@@ -13,7 +13,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Sheet } from "@/components/ui/Sheet";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
-import { api, ApiError, fmtAmount, fmtShares, fmtUsd } from "@/lib/client/api";
+import { api, ApiError, fmtAmount, fmtShares, fmtUsd, GENERIC_ERROR } from "@/lib/client/api";
 import { HEALTH, TokenIcon } from "./token";
 import { AlertsLink } from "./AlertsLink";
 import { useWallet } from "./WalletProvider";
@@ -299,7 +299,7 @@ function ActionSheet({ kind, pos, onClose }: { kind: SheetKind | null; pos: Posi
       }
       router.push(`/app/review/${r.plan.id}?${new URLSearchParams({ amount: sent })}`);
     } catch (err) {
-      setProblem(err instanceof ApiError ? err.message : "Something went wrong on our side");
+      setProblem(err instanceof ApiError ? err.message : GENERIC_ERROR);
       setBusy(false);
     }
   };

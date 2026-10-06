@@ -1,4 +1,5 @@
 import "server-only";
+import { friendlyChainError } from "@/lib/chain-errors";
 import { formatUnits, getAddress, parseUnits, type Address } from "viem";
 import { getChain } from "@/lib/chain";
 import { getConfig } from "@/lib/config";
@@ -177,7 +178,7 @@ async function execute(runId: string, d: ExecutorDeps): Promise<AgentRunOutcome>
   const fail = async (step: Step | null, reason: string): Promise<AgentRunOutcome> => {
     const idx = step?.idx ?? 0;
     const kind = step?.kind ?? (await load()).steps[0]?.kind ?? "approve";
-    await write(idx, kind as Step["kind"], { status: "failed", error: reason });
+    await write(idx, kind as Step["kind"], { status: "failed", error: /insufficient funds|nonce|revert/i.test(reason) ? friendlyChainError(reason) : reason });
     await updateRunStatus(runId, "failed", d.db);
     return { status: "failed", idx, reason };
   };

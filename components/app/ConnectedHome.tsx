@@ -42,6 +42,9 @@ interface Position {
   risk: { health: "safe" | "watch" | "at_risk"; collateralUsd: number; debtUsd: number; cushion: number | null };
 }
 
+/** NVIDIA bStock: the most liquid bStock, used as the default first buy. */
+const NVDAB = "0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436";
+
 const PLATFORM = { bstock: "bStocks", ondo: "Ondo", xstocks: "xStocks" } as const;
 
 
@@ -188,8 +191,17 @@ export function ConnectedHome() {
           <Panel className="flex flex-col gap-2 p-6">
             <p className="text-base leading-6 text-ink">No stock tokens in this wallet yet.</p>
             <p className="text-[15px] leading-6 text-body">
-              Lendhold works with bStocks and Ondo tokens on BNB Chain. Switch to the wallet that holds them.
+              Lendhold works with bStocks and Ondo tokens on BNB Chain. Switch to the wallet that holds them, buy
+              one here, or look around with a sample wallet.
             </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <Pill variant="primary" size="md" href={`/app/buy/${NVDAB}`}>
+                Buy a stock
+              </Pill>
+              <Pill variant="secondary" on="white" size="md" href="/app?sample=1">
+                Explore the sample wallet
+              </Pill>
+            </div>
           </Panel>
         ) : (
           <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">

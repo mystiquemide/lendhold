@@ -30,3 +30,6 @@ const two = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFr
 export const fmtUsd = (n: number) => usd.format(n);
 export const fmtShares = (n: number) => four.format(n);
 export const fmtAmount = (n: number) => two.format(n);
+
+/** Shown when the server fails without a reason we can show. Funds never move without a signature. */
+export const GENERIC_ERROR = "Something went wrong on our side. Your funds are safe. Try again, or go back to your stocks.";

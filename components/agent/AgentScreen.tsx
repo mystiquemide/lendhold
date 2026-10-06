@@ -8,7 +8,7 @@ import { Panel } from "@/components/ui/Panel";
 import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
-import { api, ApiError, fmtAmount, fmtShares } from "@/lib/client/api";
+import { api, ApiError, fmtAmount, fmtShares, GENERIC_ERROR } from "@/lib/client/api";
 
 const TOKEN_KEY = "lendhold:operator";
 
@@ -94,7 +94,7 @@ export function AgentScreen() {
         setToken(null);
         setError("That operator token isn't right.");
       } else {
-        setError(err instanceof ApiError ? err.message : "Something went wrong on our side");
+        setError(err instanceof ApiError ? err.message : GENERIC_ERROR);
       }
     }
   }, [token, call]);
@@ -236,7 +236,7 @@ function Ask({ call, address, cap }: { call: Call; address: string; cap: number 
       });
       setPlan(p.plan);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong on our side");
+      setError(err instanceof ApiError ? err.message : GENERIC_ERROR);
     } finally {
       setBusy(false);
     }
@@ -250,7 +250,7 @@ function Ask({ call, address, cap }: { call: Call; address: string; cap: number 
       const r = await call<{ runId: string }>("/api/agent/run", { method: "POST", body: JSON.stringify({ planId: plan.id }) });
       setRunId(r.runId);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Something went wrong on our side");
+      setError(err instanceof ApiError ? err.message : GENERIC_ERROR);
     } finally {
       setBusy(false);
     }

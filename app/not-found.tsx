@@ -10,9 +10,14 @@ export default function NotFound() {
       <div className="flex w-full max-w-[480px] flex-col items-start gap-5 rounded-panel bg-sheet p-6">
         <Logo size="sm" />
         <h1 className="text-[26px] leading-8 tracking-[-0.01em] text-ink">This page doesn&apos;t exist.</h1>
-        <Pill variant="primary" href="/app">
-          Go to your stocks
-        </Pill>
+        <div className="flex flex-wrap gap-2">
+          <Pill variant="primary" href="/app">
+            Open the app
+          </Pill>
+          <Pill variant="secondary" on="white" href="/">
+            Go home
+          </Pill>
+        </div>
       </div>
     </main>
   );
