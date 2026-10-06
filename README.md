@@ -38,6 +38,10 @@ Lendhold lets you borrow dollars against your stock tokens instead of selling th
 
 ## After you borrow
 
+![Home with an open loan: what you owe, collateral, borrowed share of value, and the loan closest to its risk price](docs/screens/home.png)
+
+![Loan screen: risk price, cushion, and the exact amount to repay or add to get back to Safe](docs/screens/loan.png)
+
 - **Loan screen:** the risk price, the price where the loan turns from Safe to Watch, and when it isn't safe, the exact amount to repay or the shares to add to get back to Safe.
 - **All loans at once:** home sums what you owe, your collateral and the average rate, and names the loan closest to its risk price. Each Lista market is liquidated on its own.
 - **Telegram alerts:** [@LendholdBot](https://t.me/LendholdBot) checks watched wallets every 5 minutes. It messages you when a loan moves from Safe to Watch or At risk, when it recovers, and once before a US market close while a loan isn't safe. `/watch 0x…`, `/unwatch`, `/status`.
@@ -56,8 +60,10 @@ BNB Smart Chain mainnet (chain ID 56). Lending on Lista Moolah at [`0x8F73…5D8
 | 6 Oct 2026 | Browser wallet | Deposit NVDAB, borrow 15.20 USD1 | 0 → 0.1248 | [approve](https://bscscan.com/tx/0x2a3097df707cd633f579b392db74681055cb9d8d43bed86efd8ba6805a88cc1f), [deposit](https://bscscan.com/tx/0xb323656089536f3031e450eaf868dbd22d3b166e49f9139be0975b01cc70e020), [borrow](https://bscscan.com/tx/0xa35d7a751810f5e328d042d27fba43ecbd054ebc66013d8e2d200cf60601bf48) |
 | 6 Oct 2026 | Browser wallet | Repay all | 0.1248 → 0.1248, debt 0 | [approve](https://bscscan.com/tx/0x79eaa25292e0792fdcb05ae6478bafd4603f12ee9a4494b97f79ba00008b23fc), [repay](https://bscscan.com/tx/0x1399a88b69fda1f6b71f53a451a548eb4f8bc88ce08755a19d24b9fee1e9852e) |
 | 6 Oct 2026 | Browser wallet | Withdraw NVDAB from the loan screen | 0.1248 → 0 | [withdraw](https://bscscan.com/tx/0xd1f5668e193e32c1954624adc3e425af3ebeab3a86cd936cea4415bd1f1c1edf) |
+| 6 Oct 2026 | Wallet Skill (Agentic Wallet) | Borrow 15.20 USD1 against 0.1182 NVDAon: converted to NVDAB, deposited, borrowed | 0 → 0.1171 | [sell NVDAon](https://bscscan.com/tx/0x714cbbd10efd59c6e5adfc6dd2ddc3319c1e1db60ead549f52a4c6ca507cb836), [buy NVDAB](https://bscscan.com/tx/0x1727a1cee4382c2cb8e09020d9a5c60e086c632bbbf7346e0aa30f4e4f9a0bbd), [approve](https://bscscan.com/tx/0x8e20987e398f86c22e3a3654d868d26975d8f4e3d0f18bd49bb902ac9055979e), [deposit](https://bscscan.com/tx/0x02bf5fb44100f1640a477ca626a3abe7ec5f1838f5c6629eb2076bf51e06068e), [borrow](https://bscscan.com/tx/0xabf97ee2d72cd6da725a0b413954af227641208cabc1e40556d677a91e9725c4) |
+| 6 Oct 2026 | Wallet Skill (Agentic Wallet) | Repay all, withdraw | 0.1171 → 0, debt 0 | [approve](https://bscscan.com/tx/0xe7d7a40e119b2bb781e098e0ffafe6180f05baa7b129d448ac9bb028e247fb3f), [repay](https://bscscan.com/tx/0xeb48c40d09d716d810fc16b181eace8c37fd4ffd2c19431f400866b07b311bb1), [withdraw](https://bscscan.com/tx/0x86a52e315fab0bb08f4e423526519781242fff514abf61674a722232a3efc929) |
 
-Borrow and repay have run on mainnet on both paths, browser wallet and Agentic Wallet. Ondo conversion is built and tested but hasn't run on mainnet yet. Earlier deposit and withdraw tests from 30 Sep and 5 Oct are on [/proof](https://lendhold.midelabs.xyz/proof).
+Borrow and repay have run on mainnet from a browser wallet, from the Agentic Wallet, and through the Wallet Skill, which also converted an Ondo holding into its bStock before borrowing. Earlier deposit and withdraw tests from 30 Sep and 5 Oct are on [/proof](https://lendhold.midelabs.xyz/proof).
 
 Swap costs are measured, not assumed. A job quotes a $50 and a $500 round trip on 18 stock tokens every 30 minutes: over 318 runs, bStocks cost a median 0.07% to 0.10%, Ondo 2.19% to 9.64%, and some Ondo tokens had no usable route. Per-stock tables are on [/proof](https://lendhold.midelabs.xyz/proof).
 
@@ -99,12 +105,13 @@ npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
 export LENDHOLD_API=https://lendhold.midelabs.xyz
 ```
 
-Then ask: "Borrow $20 against my NVIDIA bStock." The agent stops on a failed preview, a risky preview, or anything the Binance App needs to approve. The operator page at `/agent` runs plans on a server-side Agentic Wallet with a per-run cap. It needs a server with `baw` signed in, so on the hosted app it only reports that the wallet isn't available. Setup and safety rules: [skill/README.md](skill/README.md).
+Then ask: "Borrow $15 against my NVIDIA." The agent stops on a failed preview, a risky preview, or anything the Binance App needs to approve. The operator page at `/agent` runs plans on a server-side Agentic Wallet with a per-run cap. It needs a server with `baw` signed in, so on the hosted app it only reports that the wallet isn't available. Setup and safety rules: [skill/README.md](skill/README.md).
+
+The Wallet Skill rows in Proof were run this way: an AI tool followed [SKILL.md](skill/lendhold/SKILL.md) against the live site, previewed every call with `baw`, and reported each hash back to Lendhold, which checked it on-chain.
 
 ## Limits and honest notes
 
 - Unaudited. Use small amounts.
-- Ondo conversion hasn't run on mainnet yet. Borrow and repay have, on both paths.
 - The loan asset is whatever the chosen Lista market lends, often USD1 or U. Review says "You owe" in that asset, even when you receive USDT.
 - Ondo holders keep close to the same share count, minus a small conversion cost shown on Review, and the token changes: Ondo is swapped into the matching bStock before it's deposited.
 - Ondo conversion needs both assets trading, so it pauses when the US market is closed.
