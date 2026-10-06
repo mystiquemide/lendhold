@@ -39,7 +39,7 @@ export function cleanTokenName(name: string): string {
   return name.replace(/\s*\([^)]*\)\s*$/, "").trim() || name;
 }
 
-export const NO_ROOM = "No lending market with room right now";
+export const NO_ROOM = "Lista has no room to lend against this stock right now. Try again later or pick another stock.";
 
 async function hasRoom(token: RwaToken, user: string): Promise<boolean> {
   const markets = await getEligibleMarkets({ address: token.address, symbol: token.symbol }, user);
