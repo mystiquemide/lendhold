@@ -93,7 +93,7 @@ export function BuyScreen({ token }: { token: string }) {
   if (status === null) {
     return (
       <div className="mx-auto w-full max-w-[560px]">
-        <Notice tone="risk" action={<Pill variant="secondary" on="white" href="/app">Back to your stocks</Pill>}>
+        <Notice tone="risk" action={<Pill variant="secondary" on="white" href="/app/buy">Back to all stocks</Pill>}>
           We can&apos;t find this stock right now.
         </Notice>
       </div>
@@ -108,9 +108,9 @@ export function BuyScreen({ token }: { token: string }) {
 
   return (
     <div className="mx-auto flex w-full max-w-[560px] flex-col gap-4">
-      <Link href="/app" className="inline-flex min-h-11 items-center gap-1 self-start text-[15px] leading-6 text-ink hover:underline">
+      <Link href="/app/buy" className="inline-flex min-h-11 items-center gap-1 self-start text-[15px] leading-6 text-ink hover:underline">
         <ChevronLeft size={18} strokeWidth={1.75} aria-hidden="true" />
-        Your stocks
+        All stocks
       </Link>
 
       <Panel className="flex flex-col gap-5">
