@@ -9,6 +9,7 @@ import {
   createRun,
   latestShowcasePlan,
   listConfirmedSteps,
+  getProofStats,
   listProofRuns,
   listRunsWithSteps,
   getRun,
@@ -170,6 +171,26 @@ describe("landing queries", () => {
     const rows = (await listProofRuns(3, db));
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ runId: done.id, path: "agent", action: "deposit", confirmedCount: 2, lastTxHash: "0xa1" });
+  });
+
+  it("totals finished runs, confirmed txs and wallets for proof", async () => {
+    const a = (await createRun({ path: "agent", address: "0xAA", action: "deposit" }, db));
+    (await upsertStep({ runId: a.id, idx: 0, kind: "approve", status: "confirmed", txHash: "0xa0" }, db));
+    (await upsertStep({ runId: a.id, idx: 1, kind: "supplyCollateral", status: "confirmed", txHash: "0xa1" }, db));
+    (await updateRunStatus(a.id, "done", db));
+    const b = (await createRun({ path: "browser", address: "0xaa", action: "withdraw" }, db));
+    (await upsertStep({ runId: b.id, idx: 0, kind: "withdrawCollateral", status: "confirmed", txHash: "0xb0" }, db));
+    (await updateRunStatus(b.id, "done", db));
+    const c = (await createRun({ path: "browser", address: "0xcc", action: "borrow" }, db));
+    (await upsertStep({ runId: c.id, idx: 0, kind: "approve", status: "confirmed", txHash: "0xc0" }, db));
+    (await updateRunStatus(c.id, "failed", db));
+
+    expect(await getProofStats(db)).toEqual({
+      runs: 2,
+      confirmedTxs: 3,
+      wallets: 1,
+      byPath: { browser: 1, agent: 1, skill: 0 },
+    });
   });
 
   it("lists runs with steps, filtered by wallet and path", async () => {

@@ -1,8 +1,9 @@
 import { connection } from "next/server";
 import { CircleCheck } from "lucide-react";
 import { Pill } from "@/components/ui/Pill";
+import { SwapCosts } from "./SwapCosts";
 import { findStockToken } from "@/lib/engine/tokens";
-import { listProofRuns, type ProofRun } from "@/lib/store/db";
+import { getProofStats, listProofRuns, type ProofRun, type ProofStats } from "@/lib/store/db";
 import { PATH_LABELS, shortHex, utcDate } from "@/components/landing/format";
 
 async function symbolFor(token: string | null): Promise<string | null> {
@@ -23,11 +24,13 @@ async function actionLabel(run: ProofRun): Promise<string> {
 export async function ProofRuns() {
   await connection();
   let runs: ProofRun[];
+  let stats: ProofStats | null;
   try {
-    runs = await listProofRuns(100);
+    [runs, stats] = await Promise.all([listProofRuns(100), getProofStats()]);
   } catch (err) {
     console.error("proof runs unavailable", err);
     runs = [];
+    stats = null;
   }
   const labels = await Promise.all(runs.map(actionLabel));
 
@@ -45,6 +48,21 @@ export async function ProofRuns() {
             it succeeded, came from the right wallet and called the planned contract.
           </p>
         </div>
+        {stats && stats.runs > 0 && (
+          <dl className="mb-8 grid grid-cols-2 gap-3 md:mb-12 md:grid-cols-4">
+            {[
+              ["Finished runs", stats.runs],
+              ["Confirmed transactions", stats.confirmedTxs],
+              ["Wallets", stats.wallets],
+              ["Agent and skill runs", stats.byPath.agent + stats.byPath.skill],
+            ].map(([label, value]) => (
+              <div key={label} className="flex flex-col gap-2 rounded-3xl bg-sheet p-6">
+                <dt className="text-[13px] leading-5 text-muted">{label}</dt>
+                <dd className="num text-[34px] leading-[38px] tracking-[-0.015em] text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
         {runs.length === 0 && (
           <p className="rounded-3xl bg-sheet p-6 text-base leading-6 text-body md:p-8">
             No finished runs yet. They show up here as soon as one is confirmed on BNB Chain.
@@ -83,6 +101,7 @@ export async function ProofRuns() {
             );
           })}
         </ul>
+        <SwapCosts />
     </main>
   );
 }

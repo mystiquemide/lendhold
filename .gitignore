@@ -43,7 +43,7 @@ yarn-debug.log*
 .pnpm-debug.log*
 
 # Local run store
-data/
+/data/
 docs/DESIGN.md
 .env*
 .agents/

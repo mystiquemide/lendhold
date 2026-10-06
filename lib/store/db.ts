@@ -99,6 +99,21 @@ CREATE TABLE IF NOT EXISTS plans (
   json TEXT NOT NULL,
   created_at BIGINT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS tg_watches (
+  chat_id TEXT NOT NULL,
+  address TEXT NOT NULL,
+  created_at BIGINT NOT NULL,
+  PRIMARY KEY(chat_id, address)
+);
+CREATE TABLE IF NOT EXISTS tg_alert_state (
+  chat_id TEXT NOT NULL,
+  address TEXT NOT NULL,
+  market_id TEXT NOT NULL,
+  health TEXT,
+  closing_for BIGINT,
+  updated_at BIGINT NOT NULL,
+  PRIMARY KEY(chat_id, address, market_id)
+);
 CREATE TABLE IF NOT EXISTS built_txs (
   plan_id TEXT NOT NULL,
   idx INTEGER NOT NULL,
@@ -481,6 +496,39 @@ export async function listProofRuns(limit: number, sql?: Sql): Promise<ProofRun[
     lastTxHash: r.last_tx,
     finishedAt: Number(r.updated_at),
   }));
+}
+
+export interface ProofStats {
+  runs: number;
+  confirmedTxs: number;
+  wallets: number;
+  byPath: Record<RunPath, number>;
+}
+
+/** Totals over finished runs with confirmed transactions, for the proof page. */
+export async function getProofStats(sql?: Sql): Promise<ProofStats> {
+  const db = await resolveDb(sql);
+  const rows = await db.all<{ path: RunPath; runs: number | string; txs: number | string; wallets: number | string }>(
+    `SELECT r.path, COUNT(DISTINCT r.id) AS runs, COUNT(s.idx) AS txs, COUNT(DISTINCT lower(r.address)) AS wallets
+     FROM runs r JOIN run_steps s ON s.run_id = r.id
+     WHERE r.status = 'done' AND r.action IS NOT NULL
+       AND s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != ''
+     GROUP BY r.path`,
+  );
+  const all = await db.get<{ wallets: number | string }>(
+    `SELECT COUNT(DISTINCT lower(r.address)) AS wallets FROM runs r
+     WHERE r.status = 'done' AND r.action IS NOT NULL AND r.address IS NOT NULL
+       AND EXISTS (SELECT 1 FROM run_steps s WHERE s.run_id = r.id AND s.status = 'confirmed' AND s.tx_hash IS NOT NULL AND s.tx_hash != '')`,
+  );
+  const byPath: Record<RunPath, number> = { browser: 0, agent: 0, skill: 0 };
+  let runs = 0;
+  let confirmedTxs = 0;
+  for (const r of rows) {
+    byPath[r.path] = Number(r.runs);
+    runs += Number(r.runs);
+    confirmedTxs += Number(r.txs);
+  }
+  return { runs, confirmedTxs, wallets: Number(all?.wallets ?? 0), byPath };
 }
 
 export interface RunFilter {

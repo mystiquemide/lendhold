@@ -1,0 +1,368 @@
+{
+  "from": "2026-09-29T22:09:23.510Z",
+  "to": "2026-10-06T12:30:01.597Z",
+  "runs": 318,
+  "everyMinutes": 30,
+  "rows": [
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": null,
+      "quotes": 2536,
+      "routedPct": 100,
+      "medianPct": 0.07,
+      "p90Pct": 0.43
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "AMD",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.39,
+      "p90Pct": 4.18
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "GOOGL",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.08,
+      "p90Pct": 0.08
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "META",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.22,
+      "p90Pct": 0.51
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "MSFT",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.19,
+      "p90Pct": 0.5
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "NVDA",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.01,
+      "p90Pct": 0.03
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "QQQ",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0,
+      "p90Pct": 0.01
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "SPY",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0,
+      "p90Pct": 0.01
+    },
+    {
+      "issuer": "bstock",
+      "usd": 50,
+      "ticker": "TSLA",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.07,
+      "p90Pct": 0.11
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": null,
+      "quotes": 2536,
+      "routedPct": 99.96,
+      "medianPct": 0.1,
+      "p90Pct": 0.43
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "AMD",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.4,
+      "p90Pct": 4.42
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "GOOGL",
+      "quotes": 317,
+      "routedPct": 99.68,
+      "medianPct": 0.1,
+      "p90Pct": 0.11
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "META",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.23,
+      "p90Pct": 0.56
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "MSFT",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.2,
+      "p90Pct": 0.52
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "NVDA",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.02,
+      "p90Pct": 0.03
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "QQQ",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0,
+      "p90Pct": 0.01
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "SPY",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.01,
+      "p90Pct": 0.02
+    },
+    {
+      "issuer": "bstock",
+      "usd": 500,
+      "ticker": "TSLA",
+      "quotes": 317,
+      "routedPct": 100,
+      "medianPct": 0.14,
+      "p90Pct": 0.17
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": null,
+      "quotes": 3175,
+      "routedPct": 85.54,
+      "medianPct": 2.19,
+      "p90Pct": 100
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "AAPL",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 0.07,
+      "p90Pct": 2.06
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "AMD",
+      "quotes": 318,
+      "routedPct": 94.03,
+      "medianPct": 11.46,
+      "p90Pct": 11.5
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "AMZN",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 3.44,
+      "p90Pct": 3.49
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "GOOGL",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 2.2,
+      "p90Pct": 2.2
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "META",
+      "quotes": 318,
+      "routedPct": 60.38,
+      "medianPct": 0.1,
+      "p90Pct": 25.96
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "MSFT",
+      "quotes": 318,
+      "routedPct": 93.4,
+      "medianPct": 100,
+      "p90Pct": 100
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "NVDA",
+      "quotes": 318,
+      "routedPct": 94.03,
+      "medianPct": 0.03,
+      "p90Pct": 1.57
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "QQQ",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 2.53,
+      "p90Pct": 2.54
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "SPY",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 1.22,
+      "p90Pct": 1.39
+    },
+    {
+      "issuer": "ondo",
+      "usd": 50,
+      "ticker": "TSLA",
+      "quotes": 318,
+      "routedPct": 43.71,
+      "medianPct": 0.13,
+      "p90Pct": 0.2
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": null,
+      "quotes": 3175,
+      "routedPct": 81.98,
+      "medianPct": 9.64,
+      "p90Pct": 100
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "AAPL",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 0.07,
+      "p90Pct": 14.03
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "AMD",
+      "quotes": 318,
+      "routedPct": 94.03,
+      "medianPct": 23.62,
+      "p90Pct": 23.99
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "AMZN",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 25.07,
+      "p90Pct": 25.42
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "GOOGL",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 4.02,
+      "p90Pct": 4.11
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "META",
+      "quotes": 318,
+      "routedPct": 55.35,
+      "medianPct": 0.08,
+      "p90Pct": 0.25
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "MSFT",
+      "quotes": 318,
+      "routedPct": 93.08,
+      "medianPct": 100,
+      "p90Pct": 100
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "NVDA",
+      "quotes": 318,
+      "routedPct": 94.03,
+      "medianPct": 0.06,
+      "p90Pct": 2.72
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "QQQ",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 8.11,
+      "p90Pct": 16.96
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "SPY",
+      "quotes": 317,
+      "routedPct": 94.01,
+      "medianPct": 74.99,
+      "p90Pct": 80.28
+    },
+    {
+      "issuer": "ondo",
+      "usd": 500,
+      "ticker": "TSLA",
+      "quotes": 318,
+      "routedPct": 13.52,
+      "medianPct": 0.21,
+      "p90Pct": 36.47
+    }
+  ]
+}
