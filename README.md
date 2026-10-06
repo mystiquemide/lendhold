@@ -24,11 +24,21 @@ Lendhold turns that into one reviewed plan, signed from your own wallet.
 1. Open [lendhold.midelabs.xyz/app](https://lendhold.midelabs.xyz/app). No stock tokens? [Explore a sample wallet](https://lendhold.midelabs.xyz/app?sample=1): real balances and plans, read only, nothing can be signed.
 2. Confirm you're eligible to hold tokenized stocks, then connect a wallet on BNB Chain. Tokenized stocks aren't available to US persons or in other restricted regions.
 3. Your stock tokens are listed with their value. Tap Borrow on a bStock such as NVDAB or TSLAB.
-4. See the safe amount, the most you can borrow, Lista's minimum loan and the price where risk starts.
+4. See the safe amount, the most you can borrow, Lista's minimum loan and the price where risk starts. Lendhold picks the Lista market with the most free liquidity; you can switch to another one (USD1, USDC, U) by rate. Within 4 hours of a US market close, it tells you how far the safe amount will drop.
 5. Open Review to see the shares you keep, what you get, what you owe, the interest and every step, each checked before signing.
 6. Confirm, and sign each step in your wallet. A borrow needs about $35 of stock to clear Lista's minimum loan of about 15 USDC. Once you have a position, its loan screen lets you repay, add stock or withdraw.
 
-Every finished run is listed at [lendhold.midelabs.xyz/proof](https://lendhold.midelabs.xyz/proof).
+Every finished run is listed at [lendhold.midelabs.xyz/proof](https://lendhold.midelabs.xyz/proof), with the measured cost of swapping each stock token.
+
+## After you borrow
+
+- **Loan screen:** the risk price, the price where the loan turns from Safe to Watch, and when it isn't safe, the exact amount to repay or the shares to add to get back to Safe.
+- **All loans at once:** home sums what you owe, your collateral and the average rate, and names the loan closest to its risk price. Each Lista market is liquidated on its own.
+- **Telegram alerts:** [@LendholdBot](https://t.me/LendholdBot) checks watched wallets every 5 minutes. It messages you when a loan moves from Safe to Watch or At risk, when it recovers, and once before a US market close while a loan isn't safe. `/watch 0x…`, `/unwatch`, `/status`.
+
+## Swap costs, measured
+
+A job quotes a $50 and a $500 buy and sell for 18 stock tokens (10 Ondo, 8 bStocks) every 30 minutes through the Trading API. Over 318 runs (29 Sep to 6 Oct 2026), the median round trip was 0.07% and 0.10% for bStocks, and 2.19% and 9.64% for Ondo, with no usable route on some Ondo tokens. That is why Lendhold shows the Ondo conversion cost on Review and blocks swaps that lose too much. Per-stock tables are on [/proof](https://lendhold.midelabs.xyz/proof); the summary comes from [scripts/summarize-measurements.mjs](scripts/summarize-measurements.mjs).
 
 ## Proof
 
@@ -101,7 +111,7 @@ Then ask: "Borrow $20 against my NVIDIA bStock." The agent stops on a failed pre
 ```bash
 git clone https://github.com/mystiquemide/lendhold && cd lendhold
 npm install
-cp .env.example .env.local   # add BINANCE_WEB3_API_KEY and BINANCE_WEB3_API_SECRET
+cp .env.example .env.local   # add BINANCE_WEB3_API_KEY and BINANCE_WEB3_API_SECRET (Telegram vars are optional)
 npm test
 npm run dev
 ```
