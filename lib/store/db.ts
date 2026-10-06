@@ -506,6 +506,22 @@ export async function listProofRuns(limit: number, sql?: Sql): Promise<ProofRun[
   }));
 }
 
+/** Another step that already recorded this transaction hash, if any. A hash can prove one step only. */
+export async function findStepByTxHash(
+  txHash: string,
+  except: { runId: string; idx: number },
+  sql?: Sql,
+): Promise<{ runId: string; idx: number } | undefined> {
+  const db = await resolveDb(sql);
+  const row = await db.get<{ run_id: string; idx: number | string }>(
+    `SELECT run_id, idx FROM run_steps
+     WHERE lower(tx_hash) = lower(?) AND NOT (run_id = ? AND idx = ?)
+     LIMIT 1`,
+    [txHash, except.runId, except.idx],
+  );
+  return row ? { runId: row.run_id, idx: Number(row.idx) } : undefined;
+}
+
 export interface ProofStats {
   runs: number;
   confirmedTxs: number;

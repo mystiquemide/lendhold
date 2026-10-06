@@ -5,9 +5,12 @@ import { AppError } from "@/lib/errors";
 import { fromJson } from "@/lib/json";
 import { verifyTx } from "@/lib/engine/verify";
 import type { Plan } from "@/lib/engine/planner";
-import { getBuiltTx, getRun, updateRunStatus, upsertStep } from "@/lib/store/db";
+import { findStepByTxHash, getBuiltTx, getRun, updateRunStatus, upsertStep } from "@/lib/store/db";
 
 export const dynamic = "force-dynamic";
+
+/** Clock slack between this server and block timestamps when checking a tx came after its run. */
+export const RUN_CLOCK_SLACK_MS = 2 * 60 * 1000;
 
 const body = z.object({
   idx: z.number().int().min(0),
@@ -28,6 +31,11 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
   if (existing.status === "confirmed") return json({ run });
   if (existing.status === "sent" && existing.txHash && existing.txHash.toLowerCase() !== txHash.toLowerCase()) {
     throw new AppError("STEP_ALREADY_SENT", "This step already has a transaction. Wait for it instead of sending another.", 409);
+  }
+
+  // A hash proves one step once. Without this, old transactions could be replayed into new runs.
+  if (await findStepByTxHash(txHash, { runId: id, idx })) {
+    throw new AppError("TX_ALREADY_USED", "That transaction already counts for another step", 409);
   }
 
   let expectedTo: string | undefined;
@@ -61,6 +69,11 @@ export const POST = handle(async (req, ctx: { params: Promise<{ id: string }> })
     await upsertStep({ runId: id, idx, kind: step.kind, status: "sent", txHash });
     await updateRunStatus(id, "running");
     return json({ run: await getRun(id), pending: true }, 202);
+  }
+
+  const block = await chain.getBlock({ blockNumber: receipt.blockNumber });
+  if (Number(block.timestamp) * 1000 < run.createdAt - RUN_CLOCK_SLACK_MS) {
+    throw new AppError("TX_BEFORE_RUN", "That transaction was sent before this run started", 422);
   }
 
   const result = verifyTx(
