@@ -36,17 +36,11 @@ Lendhold lets you borrow dollars against your stock tokens instead of selling th
 5. Open Review to see the shares you keep, what you get, what you owe, the interest and every step, each checked before signing.
 6. Confirm, and sign each step in your wallet. A borrow needs about $35 of stock to clear Lista's minimum loan of about 15 USDC. Once you have a position, its loan screen lets you repay, add stock or withdraw.
 
-Every finished run is listed at [lendhold.midelabs.xyz/proof](https://lendhold.midelabs.xyz/proof), with the measured cost of swapping each stock token.
-
 ## After you borrow
 
 - **Loan screen:** the risk price, the price where the loan turns from Safe to Watch, and when it isn't safe, the exact amount to repay or the shares to add to get back to Safe.
 - **All loans at once:** home sums what you owe, your collateral and the average rate, and names the loan closest to its risk price. Each Lista market is liquidated on its own.
 - **Telegram alerts:** [@LendholdBot](https://t.me/LendholdBot) checks watched wallets every 5 minutes. It messages you when a loan moves from Safe to Watch or At risk, when it recovers, and once before a US market close while a loan isn't safe. `/watch 0x…`, `/unwatch`, `/status`.
-
-## Swap costs, measured
-
-A job quotes a $50 and a $500 buy and sell for 18 stock tokens (10 Ondo, 8 bStocks) every 30 minutes through the Trading API. Over 318 runs (29 Sep to 6 Oct 2026), the median round trip was 0.07% and 0.10% for bStocks, and 2.19% and 9.64% for Ondo, with no usable route on some Ondo tokens. That is why Lendhold shows the Ondo conversion cost on Review and blocks swaps that lose too much. Per-stock tables are on [/proof](https://lendhold.midelabs.xyz/proof); the summary comes from [scripts/summarize-measurements.mjs](scripts/summarize-measurements.mjs).
 
 ## Proof
 
@@ -54,12 +48,6 @@ BNB Smart Chain mainnet (chain ID 56). Lending on Lista Moolah at [`0x8F73…5D8
 
 | Date (UTC) | Path | Action | Shares in Lista, before → after | Transactions |
 |---|---|---|---|---|
-| 30 Sep 2026 | Agentic Wallet | Deposit NVDAB | 0 → 0.0122 | [approve](https://bscscan.com/tx/0x6194a361c0f351dece9eb0dec031aa1ff3b09ce9b947997d39e3e235397f4889), [deposit](https://bscscan.com/tx/0x948577def0b38edb83ee8a3e0554300beb1a220cd2c74021114b273ec8145620) |
-| 30 Sep 2026 | Agentic Wallet | Withdraw NVDAB | 0.0122 → 0 | [withdraw](https://bscscan.com/tx/0xdac18e949902b564391a24e06b47ac83b681fab8e3c6f6f6433079932c0cfa2a) |
-| 5 Oct 2026 | Browser wallet | Deposit TSLAB | 0 → 0.0189 | [approve](https://bscscan.com/tx/0xe89db7d818b509410a4a4c1232d8430f501dcf00f712fb22ae79dd90370ce1aa), [deposit](https://bscscan.com/tx/0x3e8af4cc62fbc997c5721b6480fba50a09100b793340d49605ef1560ff6391e2) |
-| 5 Oct 2026 | Browser wallet | Withdraw TSLAB | 0.0189 → 0 | [withdraw](https://bscscan.com/tx/0xee6a242e10a870d47a2c378b48203b5567bcd254eba4efbf1f1d79e62847386a) |
-| 5 Oct 2026 | Browser wallet | Deposit TSLAB | 0 → 0.0080 | [approve](https://bscscan.com/tx/0xbe39e809eef6962e3a6fa8d383f29b49556443eef387aa12e7131858130ab97a), [deposit](https://bscscan.com/tx/0xea8d755615832cdd6fccc5e0c6baf2be016dcb662eb16844af881bd1b8765cf5) |
-| 5 Oct 2026 | Browser wallet | Withdraw TSLAB from the loan screen | 0.0080 → 0 | [withdraw](https://bscscan.com/tx/0xd507edbad8f608c34c37488e0c633e9b096e26d1e719637d7d64d968ebe6f2e1) |
 | 6 Oct 2026 | Agentic Wallet | Buy NVDAB with 30 USDT | wallet 0 → 0.1236 | [swap](https://bscscan.com/tx/0x04745badf0c059ce0082f8f81539702cd26323517a13d958335fcabd48d81529) |
 | 6 Oct 2026 | Agentic Wallet | Deposit NVDAB, borrow 15.20 USD1 | 0 → 0.1360 | [approve](https://bscscan.com/tx/0x7d219f1afc969965df06e4a85eaf67fd499e780ac685021518d3b54c3a8a4436), [deposit](https://bscscan.com/tx/0xd19b103a4aa76f0bdb7823ededf6b98ed4d10a7cec9602464c40cb81f9f8c049), [borrow](https://bscscan.com/tx/0x37c7e6d003b59f8105b1d2f5e8910cb3e09e4f752c24de8d8ac2bb7dedc7bb61) |
 | 6 Oct 2026 | Agentic Wallet | Repay all | 0.1360 → 0.1360, debt 0 | [approve](https://bscscan.com/tx/0x07ba5b96e8c263d545867cdc814b7025d4472a35db951fe699f09a72c8848f55), [repay](https://bscscan.com/tx/0xa1271b5108cc8e7b8b6f032a74a2dc52dad7cf03fa0b4fa26bd2eff6900ac16a) |
@@ -69,7 +57,9 @@ BNB Smart Chain mainnet (chain ID 56). Lending on Lista Moolah at [`0x8F73…5D8
 | 6 Oct 2026 | Browser wallet | Repay all | 0.1248 → 0.1248, debt 0 | [approve](https://bscscan.com/tx/0x79eaa25292e0792fdcb05ae6478bafd4603f12ee9a4494b97f79ba00008b23fc), [repay](https://bscscan.com/tx/0x1399a88b69fda1f6b71f53a451a548eb4f8bc88ce08755a19d24b9fee1e9852e) |
 | 6 Oct 2026 | Browser wallet | Withdraw NVDAB from the loan screen | 0.1248 → 0 | [withdraw](https://bscscan.com/tx/0xd1f5668e193e32c1954624adc3e425af3ebeab3a86cd936cea4415bd1f1c1edf) |
 
-Borrow and repay have run on mainnet on both paths, browser wallet and Agentic Wallet. Ondo conversion is built and tested but hasn't run on mainnet yet.
+Borrow and repay have run on mainnet on both paths, browser wallet and Agentic Wallet. Ondo conversion is built and tested but hasn't run on mainnet yet. Earlier deposit and withdraw tests from 30 Sep and 5 Oct are on [/proof](https://lendhold.midelabs.xyz/proof).
+
+Swap costs are measured, not assumed. A job quotes a $50 and a $500 round trip on 18 stock tokens every 30 minutes: over 318 runs, bStocks cost a median 0.07% to 0.10%, Ondo 2.19% to 9.64%, and some Ondo tokens had no usable route. Per-stock tables are on [/proof](https://lendhold.midelabs.xyz/proof).
 
 ## How it works
 
@@ -120,6 +110,8 @@ Then ask: "Borrow $20 against my NVIDIA bStock." The agent stops on a failed pre
 - Ondo conversion needs both assets trading, so it pauses when the US market is closed.
 - xStocks are shown as unsupported. There is no route on BSC.
 - Swaps that Binance routes through a signed quote (RFQ) aren't supported in the browser yet. That step stops with a reason.
+- The agent runs above used an operator Agentic Wallet on a server with `baw` signed in. The hosted app can't sign for agents, so during judging the agent path is shown by these hashes and the skill, not a live button.
+- On the skill path, the user's own Agentic Wallet routes swaps, so Lendhold can only confirm that a swap step succeeded and came from that wallet, not which router it used. Lending steps get the full check.
 - If the stock falls to the risk price, Lista can sell part of the collateral. Lendhold shows that price before you sign. It doesn't prevent it.
 
 ## Run locally
