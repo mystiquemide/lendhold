@@ -10,7 +10,9 @@ import { Pill } from "@/components/ui/Pill";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
 import { api, fmtAmount, fmtShares, fmtUsd } from "@/lib/client/api";
+import { summarizePortfolio } from "@/lib/engine/portfolio";
 import { HEALTH, TokenIcon } from "./token";
+import { AlertsLink } from "./AlertsLink";
 import { useWallet } from "./WalletProvider";
 
 interface Holding {
@@ -36,7 +38,8 @@ interface Position {
   debt: string;
   loan: { decimals: number };
   collateral: { symbol: string; shares: number };
-  risk: { health: "safe" | "watch" | "at_risk" };
+  aprPct: number;
+  risk: { health: "safe" | "watch" | "at_risk"; collateralUsd: number; debtUsd: number; cushion: number | null };
 }
 
 const PLATFORM = { bstock: "bStocks", ondo: "Ondo", xstocks: "xStocks" } as const;
@@ -48,6 +51,41 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h2 className="px-2 text-sm leading-none uppercase tracking-[0.1em] text-[#333333]">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="text-[13px] leading-5 text-muted">{label}</dt>
+      <dd className="num text-[22px] leading-7 text-ink">{value}</dd>
+    </div>
+  );
+}
+
+function PortfolioSummary({ positions, address }: { positions: Position[]; address: string | null }) {
+  const p = summarizePortfolio(positions);
+  const w = p.weakest;
+  return (
+    <Panel className="flex flex-col gap-4 p-5">
+      <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Stat label="You owe" value={fmtUsd(p.debtUsd)} />
+        <Stat label="Stocks held as collateral" value={fmtUsd(p.collateralUsd)} />
+        <Stat label="Borrowed of value" value={`${(p.ltv * 100).toFixed(1)}%`} />
+        <Stat label="Average rate" value={p.aprPct === null ? "None" : `${p.aprPct.toFixed(2)}% APR`} />
+      </dl>
+      {w && (
+        <p className="text-[13px] leading-5 text-body">
+          Closest to the line:{" "}
+          <Link href={`/app/loan/${w.marketId}`} className="text-ink underline decoration-line underline-offset-4 hover:decoration-ink">
+            {w.ticker}
+          </Link>
+          , {(w.cushion * 100).toFixed(1)}% price drop before part is sold. Each loan is its own Lista market, so one loan
+          getting close doesn&apos;t touch the others.
+        </p>
+      )}
+      {p.debtUsd > 0 && <AlertsLink address={address} />}
+    </Panel>
   );
 }
 
@@ -115,6 +153,7 @@ export function ConnectedHome() {
       <h1 className="sr-only">Your loans and stocks</h1>
       {positions.length > 0 && (
         <Section title="Your loans">
+          <PortfolioSummary positions={positions} address={address} />
           <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
             {positions.map((p) => {
               const h = HEALTH[p.risk.health];

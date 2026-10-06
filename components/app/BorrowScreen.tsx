@@ -30,7 +30,7 @@ interface Holding {
 interface PlanResponse {
   plan: {
     id: string;
-    market: { loanSymbol: string; loanDecimals: number; minBorrow: string } | null;
+    market: { id: string; loanSymbol: string; loanDecimals: number; minBorrow: string } | null;
     sizing: { safeBorrowNew: string; maxBorrowNew: string; notices: { code: string; message: string }[] } | null;
     notices: { code: string; message: string }[];
     blockers: { code: string; message: string }[];
@@ -44,6 +44,16 @@ interface PlanResponse {
     };
   };
 }
+
+interface MarketOption {
+  id: string;
+  loanSymbol: string;
+  lltv: number;
+  availableUsd: number;
+  aprPct: number;
+}
+
+const compactUsd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
 
 const units = (raw: string, decimals: number) => Number(formatUnits(BigInt(raw), decimals));
 
@@ -76,12 +86,15 @@ export function BorrowScreen({ token }: { token: string }) {
   const [amount, setAmount] = useState("");
   const [receive, setReceive] = useState<"USDT" | "loan">("USDT");
   const [planning, setPlanning] = useState(false);
+  /** null lets the planner pick the market with the most liquidity. */
+  const [marketId, setMarketId] = useState<string | null>(null);
+  const [markets, setMarkets] = useState<{ selectedId: string | null; markets: MarketOption[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
   const touched = useRef(false);
 
   const plan = useCallback(
-    async (amt: string | null, rcv: "USDT" | "loan") => {
+    async (amt: string | null, rcv: "USDT" | "loan", mkt: string | null = null) => {
       if (!address) return;
       const my = ++seq.current;
       setPlanning(true);
@@ -96,6 +109,7 @@ export function BorrowScreen({ token }: { token: string }) {
             receive: rcv,
             check: false,
             ...(amt ? { amount: amt } : {}),
+            ...(mkt ? { marketId: mkt } : {}),
           }),
         });
         if (my !== seq.current) return;
@@ -105,7 +119,7 @@ export function BorrowScreen({ token }: { token: string }) {
           planned = floor2(units(r.plan.sizing.safeBorrowNew, r.plan.market.loanDecimals));
           setAmount(planned);
         }
-        setPlannedFor(`${planned}|${rcv}`);
+        setPlannedFor(`${planned}|${rcv}|${mkt}`);
       } catch (err) {
         if (my === seq.current) setError(err instanceof ApiError ? err.message : "Something went wrong on our side");
       } finally {
@@ -133,9 +147,21 @@ export function BorrowScreen({ token }: { token: string }) {
     if (!touched.current) return;
     const valid = /^\d+(\.\d+)?$/.test(amount) && Number(amount) > 0;
     if (!valid) return;
-    const t = setTimeout(() => plan(amount, receive), 600);
+    const t = setTimeout(() => plan(amount, receive, marketId), 600);
     return () => clearTimeout(t);
-  }, [amount, receive, plan]);
+  }, [amount, receive, marketId, plan]);
+
+  const collateralAddress = holding?.platform === "ondo" ? holding.matchingBStock?.address : holding?.address;
+  useEffect(() => {
+    if (!collateralAddress || !address) return;
+    let live = true;
+    api<{ selectedId: string | null; markets: MarketOption[] }>(`/api/markets?collateral=${collateralAddress}&user=${address}`)
+      .then((r) => live && setMarkets(r))
+      .catch(() => live && setMarkets(null));
+    return () => {
+      live = false;
+    };
+  }, [collateralAddress, address]);
 
   const p = res?.plan;
   const m = p?.market;
@@ -153,7 +179,8 @@ export function BorrowScreen({ token }: { token: string }) {
   }, [sizing, p]);
   const d = p?.display;
   const loanIsUsdt = m?.loanSymbol === "USDT";
-  const current = plannedFor === `${amount}|${receive}`;
+  const current = plannedFor === `${amount}|${receive}|${marketId}`;
+  const liveMarkets = (markets?.markets ?? []).filter((o) => o.availableUsd > 0);
   const canReview = !!p && current && blockers.length === 0 && !invalid && !planning && amount !== "";
 
   if (holding === undefined) {
@@ -267,6 +294,54 @@ export function BorrowScreen({ token }: { token: string }) {
               health={d.health}
               priceLabel="Price now"
             />
+          )}
+
+          {liveMarkets.length > 1 && m && (
+            <fieldset>
+              <legend className="text-[13px] leading-5 text-muted">Lista market</legend>
+              <div className="mt-2 flex flex-col gap-1">
+                {liveMarkets.map((o) => {
+                  const chosen = m.id.toLowerCase() === o.id.toLowerCase();
+                  const best = o.id === markets?.selectedId;
+                  return (
+                    <label
+                      key={o.id}
+                      className={cn(
+                        "flex min-h-11 cursor-pointer items-center gap-3 rounded-input border px-3 py-2 text-[15px] leading-5 has-focus-visible:outline-2 has-focus-visible:outline-action",
+                        chosen ? "border-ink bg-sheet" : "border-line hover:border-ink",
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="market"
+                        value={o.id}
+                        checked={chosen}
+                        onChange={() => {
+                          // A new market has its own limits, so start again from its safe amount.
+                          const next = best ? null : o.id;
+                          touched.current = false;
+                          setMarketId(next);
+                          plan(null, receive, next);
+                        }}
+                        className="sr-only"
+                      />
+                      <span className="w-12 shrink-0 text-ink">{o.loanSymbol}</span>
+                      <span className="num flex-1 whitespace-nowrap text-body">{o.aprPct.toFixed(2)}% APR</span>
+                      <span className="num whitespace-nowrap text-right text-[13px] text-muted">
+                        {compactUsd.format(o.availableUsd)} free
+                        {new Set(liveMarkets.map((x) => x.lltv)).size > 1 ? ` · ${Math.round(o.lltv * 100)}% LLTV` : ""}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-2 text-[13px] leading-5 text-muted">
+                {new Set(liveMarkets.map((o) => o.lltv)).size === 1
+                  ? `All at ${Math.round(liveMarkets[0].lltv * 100)}% LLTV. `
+                  : ""}
+                We pick the market with the most free liquidity. Rates move with use.
+              </p>
+            </fieldset>
           )}
 
           {notices.map((n) => (

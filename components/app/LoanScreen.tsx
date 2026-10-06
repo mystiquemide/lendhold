@@ -7,6 +7,7 @@ import { ArrowRight, ChevronLeft } from "lucide-react";
 import { formatUnits } from "viem";
 import { CushionRuler } from "@/components/ui/CushionRuler";
 import { Notice } from "@/components/ui/Notice";
+import { backToSafe, watchPricePerShare } from "@/lib/engine/risk";
 import { Panel } from "@/components/ui/Panel";
 import { Pill } from "@/components/ui/Pill";
 import { Sheet } from "@/components/ui/Sheet";
@@ -14,6 +15,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/components/ui/cn";
 import { api, ApiError, fmtAmount, fmtShares, fmtUsd } from "@/lib/client/api";
 import { HEALTH, TokenIcon } from "./token";
+import { AlertsLink } from "./AlertsLink";
 import { useWallet } from "./WalletProvider";
 
 interface Position {
@@ -129,6 +131,8 @@ export function LoanScreen({ marketId }: { marketId: string }) {
   const health = HEALTH[pos.risk.health];
   const cushionPct = pos.risk.cushion == null ? null : pos.risk.cushion * 100;
   const worried = owes && pos.risk.health !== "safe";
+  const fix = pricePerShare ? backToSafe(pos.risk, pricePerShare) : null;
+  const watchAt = owes && pos.risk.health === "safe" ? watchPricePerShare(pos.risk) : null;
   const safeMore = Number(formatUnits(BigInt(pos.sizing.safeBorrowNew), pos.loan.decimals));
 
   return (
@@ -159,7 +163,10 @@ export function LoanScreen({ marketId }: { marketId: string }) {
 
         {worried && cushionPct != null && (
           <Notice tone={pos.risk.health === "at_risk" ? "risk" : "watch"}>
-            Your stock is {fmtAmount(cushionPct)}% above the risk price. Repay some or add stock to stay safe.
+            Your stock is {fmtAmount(cushionPct)}% above the risk price.
+            {fix
+              ? ` Back to safe: repay ${fmtAmount(fix.repayUsd)} ${pos.loanSymbol}, or add ${fmtShares(fix.addShares)} shares.`
+              : " Repay some or add stock to stay safe."}
           </Notice>
         )}
 
@@ -167,6 +174,7 @@ export function LoanScreen({ marketId }: { marketId: string }) {
           {owes && pos.risk.liquidationPricePerShare != null && (
             <Row label="Risk starts at" value={`$${fmtAmount(pos.risk.liquidationPricePerShare)} a share`} />
           )}
+          {watchAt != null && <Row label="Watch starts at" value={`$${fmtAmount(watchAt)} a share`} />}
           {pricePerShare != null && <Row label={`${pos.name} now`} value={`$${fmtAmount(pricePerShare)} a share`} />}
           {owes && <Row label="You owe" value={`${fmtAmount(debt)} ${pos.loanSymbol}`} />}
           {owes && <Row label="Interest" value={`${fmtAmount(pos.aprPct)}% a year`} />}
@@ -222,6 +230,7 @@ export function LoanScreen({ marketId }: { marketId: string }) {
             ))}
           </div>
         </details>
+        {owes && <AlertsLink address={address} />}
       </Panel>
 
       <ActionSheet kind={sheet} pos={pos} onClose={() => setSheet(null)} />

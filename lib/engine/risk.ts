@@ -86,3 +86,26 @@ export function computeRisk(input: RiskInput): Risk {
     health: healthFor(ltv, lltv),
   };
 }
+
+/**
+ * What brings a loan back to "safe" (LTV at or under 60% of LLTV): repay this much debt in USD,
+ * or add this many shares at the current price. Null when the loan is already safe.
+ */
+export function backToSafe(
+  risk: Pick<Risk, "collateralUsd" | "debtUsd" | "lltv" | "health">,
+  pricePerShare: number,
+): { repayUsd: number; addShares: number } | null {
+  if (risk.health === "safe" || risk.debtUsd <= 0 || pricePerShare <= 0) return null;
+  const limit = 0.6 * risk.lltv;
+  return {
+    repayUsd: Math.max(0, risk.debtUsd - limit * risk.collateralUsd),
+    addShares: Math.max(0, risk.debtUsd / limit - risk.collateralUsd) / pricePerShare,
+  };
+}
+
+/** Per-share price at which the loan turns from safe to watch (LTV reaches 60% of LLTV). */
+export function watchPricePerShare(
+  risk: Pick<Risk, "debtUsd" | "lltv" | "liquidationPricePerShare">,
+): number | null {
+  return risk.liquidationPricePerShare === null || risk.debtUsd <= 0 ? null : risk.liquidationPricePerShare / 0.6;
+}

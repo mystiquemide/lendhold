@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeSizing, minLoanFloor, type SizingInput } from "@/lib/engine/sizing";
-import { computeRisk, healthFor, toUnits } from "@/lib/engine/risk";
+import { backToSafe, computeRisk, healthFor, toUnits, watchPricePerShare } from "@/lib/engine/risk";
 import { borrowSharesToAssets, withRepayHeadroom } from "@/lib/engine/debt";
 
 const E18 = 10n ** 18n;
@@ -190,5 +190,56 @@ describe("debt shares", () => {
   });
   it("adds 0.5% headroom for full repay approvals", () => {
     expect(withRepayHeadroom(1_000n)).toBe(1_006n);
+  });
+});
+
+describe("closing soon", () => {
+  const now = Date.UTC(2026, 9, 6, 18, 0);
+  const open = (close: number, reopen: number) => ({
+    marketOpen: true,
+    assetReasonCode: "TRADING",
+    nextCloseTime: close,
+    nextOpenTime: reopen,
+    now,
+  });
+
+  it("warns 2h before an overnight close and reports the closed safe amount", () => {
+    const s = computeSizing({ ...base, session: open(now + 2 * 3600e3, now + 16 * 3600e3) });
+    expect(s.notices).toHaveLength(1);
+    expect(s.notices[0].code).toBe("CLOSING_SOON");
+    expect(s.notices[0].message).toContain("2h");
+    expect(s.safeBorrowNew).toBe(135n * E18);
+    expect(s.safeBorrowClosedNew).toBe(10125n * E18 / 100n);
+  });
+
+  it("ignores a two-minute pre-market gap", () => {
+    expect(computeSizing({ ...base, session: open(now + 600e3, now + 720e3) }).notices).toEqual([]);
+  });
+
+  it("stays quiet when the close is more than 4h away", () => {
+    expect(computeSizing({ ...base, session: open(now + 5 * 3600e3, now + 20 * 3600e3) }).notices).toEqual([]);
+  });
+
+  it("while closed, the closed safe amount equals the safe amount", () => {
+    const s = computeSizing({ ...base, session: { marketOpen: false, assetReasonCode: "TRADING" } });
+    expect(s.safeBorrowClosedNew).toBe(s.safeBorrowNew);
+  });
+});
+
+describe("backToSafe", () => {
+  it("watch loan: repay or add shares to reach 60% of LLTV", () => {
+    // $1,000 of stock at $100 a share, $600 owed, LLTV 75%: safe limit is LTV 45%, so $450 debt.
+    const r = backToSafe({ collateralUsd: 1000, debtUsd: 600, lltv: 0.75, health: "watch" }, 100)!;
+    expect(r.repayUsd).toBeCloseTo(150);
+    // $600 / 0.45 = $1,333.33 of stock needed, so 3.3333 more shares.
+    expect(r.addShares).toBeCloseTo(3.3333, 3);
+  });
+
+  it("safe loan: nothing to do", () => {
+    expect(backToSafe({ collateralUsd: 1000, debtUsd: 100, lltv: 0.75, health: "safe" }, 100)).toBeNull();
+  });
+
+  it("watch line sits above the risk line", () => {
+    expect(watchPricePerShare({ debtUsd: 600, lltv: 0.75, liquidationPricePerShare: 80 })).toBeCloseTo(133.33, 2);
   });
 });

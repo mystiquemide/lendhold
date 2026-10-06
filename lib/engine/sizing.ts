@@ -9,14 +9,22 @@ export interface SizingSession {
   assetReasonCode: string | null;
   reasonMsg?: string | null;
   nextOpenTime?: number | null;
+  nextCloseTime?: number | null;
+  /** Clock for the closing-soon check, in ms. Defaults to Date.now(). */
+  now?: number;
 }
 
-export type NoticeCode = "MARKET_CLOSED" | "ASSET_PAUSED" | "ASSET_LIMITED" | "ABOVE_SAFE";
+/** Warn this long before a close that lasts at least CLOSE_GAP_MS. Short pre-market gaps are ignored. */
+export const CLOSING_SOON_MS = 4 * 60 * 60 * 1000;
+export const CLOSE_GAP_MS = 60 * 60 * 1000;
+
+export type NoticeCode = "MARKET_CLOSED" | "CLOSING_SOON" | "ASSET_PAUSED" | "ASSET_LIMITED" | "ABOVE_SAFE";
 
 export interface Notice {
   code: NoticeCode;
   message: string;
   nextOpenTime?: number | null;
+  closesAt?: number | null;
 }
 
 export interface SizingInput {
@@ -41,6 +49,8 @@ export interface Sizing {
   maxBorrowTotal: bigint;
   maxBorrowNew: bigint;
   safeBorrowNew: bigint;
+  /** The safe amount once the market closes (0.45 buffer). Equals safeBorrowNew while closed. */
+  safeBorrowClosedNew: bigint;
   /** 0.60 or 0.45. */
   buffer: number;
   notices: Notice[];
@@ -59,8 +69,33 @@ export function collateralValueInLoan(input: SizingInput): bigint {
   );
 }
 
+/** When the market is open and a real close (not a short pre-market gap) is near, its time in ms. */
+export function closingSoonAt(session: SizingSession): number | null {
+  const { nextCloseTime: close, nextOpenTime: reopen } = session;
+  if (!session.marketOpen || !close) return null;
+  const left = close - (session.now ?? Date.now());
+  if (left <= 0 || left > CLOSING_SOON_MS) return null;
+  if (reopen && reopen > close && reopen - close < CLOSE_GAP_MS) return null;
+  return close;
+}
+
+export function fmtDuration(ms: number): string {
+  const mins = Math.max(1, Math.round(ms / 60000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h === 0 ? `${m}m` : m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
 export function sessionNotices(session: SizingSession): Notice[] {
   const notices: Notice[] = [];
+  const closesAt = closingSoonAt(session);
+  if (closesAt) {
+    notices.push({
+      code: "CLOSING_SOON",
+      message: `US market closes in ${fmtDuration(closesAt - (session.now ?? Date.now()))}, then the safe amount drops`,
+      closesAt,
+    });
+  }
   if (!session.marketOpen) {
     const when = session.nextOpenTime ? new Date(session.nextOpenTime).toISOString() : null;
     notices.push({
@@ -98,11 +133,13 @@ export function computeSizing(input: SizingInput): Sizing {
   const value = collateralValueInLoan(input);
   const maxTotal = (value * input.lltv) / WAD;
   const safeTotal = (value * input.lltv * buffer) / (WAD * BPS);
+  const safeClosedTotal = (value * input.lltv * BUFFER_CLOSED) / (WAD * BPS);
   return {
     collateralValueLoan: value,
     maxBorrowTotal: maxTotal,
     maxBorrowNew: min(floor0(maxTotal - input.existingDebt), input.availableLiquidity),
     safeBorrowNew: min(floor0(safeTotal - input.existingDebt), input.availableLiquidity),
+    safeBorrowClosedNew: min(floor0(safeClosedTotal - input.existingDebt), input.availableLiquidity),
     buffer: Number(buffer) / Number(BPS),
     notices: sessionNotices(input.session),
   };

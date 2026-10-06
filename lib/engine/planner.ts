@@ -323,6 +323,7 @@ async function sessionFor(assets: RwaToken[]) {
       assetReasonCode: notTrading?.reasonCode ?? null,
       reasonMsg: notTrading?.reasonMsg ?? null,
       nextOpenTime: primary?.nextOpenTime ?? session.nextOpenTime ?? null,
+      nextCloseTime: primary?.nextCloseTime ?? session.nextCloseTime ?? null,
     },
     allTrading: !notTrading,
   };
@@ -463,7 +464,13 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
     session,
   });
   plan.sizing = sizing;
-  b.notices.push(...sizing.notices);
+  b.notices.push(
+    ...sizing.notices.map((n) =>
+      n.code === "CLOSING_SOON" && sizing.safeBorrowClosedNew < sizing.safeBorrowNew
+        ? { ...n, message: `${n.message} to ${fmtDown(sizing.safeBorrowClosedNew, chain.loanDecimals)} ${market.loanSymbol}` }
+        : n,
+    ),
+  );
 
   let borrowAmount: bigint;
   if (req.amount) {
@@ -471,14 +478,14 @@ async function planBorrow(req: PlanRequest, owner: Address, token: RwaToken): Pr
     if (borrowAmount > sizing.maxBorrowNew) {
       b.block(
         "ABOVE_MAX",
-        `That is more than the ${formatUnits(sizing.maxBorrowNew, chain.loanDecimals)} ${market.loanSymbol} you can borrow here`,
+        `That is more than the ${fmtDown(sizing.maxBorrowNew, chain.loanDecimals)} ${market.loanSymbol} you can borrow here`,
       );
       return finish(plan, b);
     }
     if (borrowAmount > sizing.safeBorrowNew) {
       b.notices.push({
         code: "ABOVE_SAFE",
-        message: `Above the safe amount of ${formatUnits(sizing.safeBorrowNew, chain.loanDecimals)} ${market.loanSymbol}: less room before liquidation`,
+        message: `Above the safe amount of ${fmtDown(sizing.safeBorrowNew, chain.loanDecimals)} ${market.loanSymbol}: less room before liquidation`,
       });
     }
   } else {
@@ -596,7 +603,7 @@ async function planRepay(req: PlanRequest, owner: Address, token: RwaToken): Pro
   const all = !req.amount || req.amount === "all";
   const repayAssets = all ? undefined : parseAmount(req.amount!, chain.loanDecimals);
   if (repayAssets !== undefined && repayAssets > debt) {
-    b.block("ABOVE_DEBT", `That is more than you owe (${formatUnits(debt, chain.loanDecimals)} ${market.loanSymbol}). Choose repay all.`);
+    b.block("ABOVE_DEBT", `That is more than you owe (${fmtUp(debt, chain.loanDecimals)} ${market.loanSymbol}). Choose repay all.`);
     return finish(plan, b);
   }
   if (repayAssets !== undefined) {
@@ -614,7 +621,7 @@ async function planRepay(req: PlanRequest, owner: Address, token: RwaToken): Pro
   const needed = all ? withRepayHeadroom(debt) : repayAssets!;
   const balance = await erc20Balance(params.loanToken, owner);
   if (balance < (all ? debt : needed)) {
-    b.block("INSUFFICIENT_LOAN_BALANCE", `You need ${formatUnits(all ? debt : needed, chain.loanDecimals)} ${market.loanSymbol} in your wallet to repay`);
+    b.block("INSUFFICIENT_LOAN_BALANCE", `You need ${fmtUp(all ? debt : needed, chain.loanDecimals)} ${market.loanSymbol} in your wallet to repay`);
     return finish(plan, b);
   }
   const allowance = await erc20Allowance(params.loanToken, owner, moolah);

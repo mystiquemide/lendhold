@@ -73,6 +73,7 @@ export async function getPositionView(address: string, marketId: string): Promis
       assetReasonCode: asset.reasonCode,
       reasonMsg: asset.reasonMsg,
       nextOpenTime: asset.nextOpenTime ?? session.nextOpenTime,
+      nextCloseTime: asset.nextCloseTime ?? session.nextCloseTime,
     },
   });
   return {
