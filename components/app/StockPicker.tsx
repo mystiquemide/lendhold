@@ -25,7 +25,10 @@ export function StockPicker() {
 
   useEffect(() => {
     let live = true;
-    api<{ stocks: Stock[] }>("/api/stocks")
+    const load = () => api<{ stocks: Stock[] }>("/api/stocks");
+    // One quiet retry: a cold server can hit Binance's rate limit on the first load.
+    load()
+      .catch(() => new Promise<{ stocks: Stock[] }>((res, rej) => setTimeout(() => load().then(res, rej), 2000)))
       .then((r) => live && setStocks(r.stocks))
       .catch((err) => live && setError(err instanceof ApiError ? err.message : GENERIC_ERROR));
     return () => {
