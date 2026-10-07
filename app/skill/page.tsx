@@ -35,6 +35,12 @@ const steps = (site: string): { title: string; code: string[]; after?: string }[
   { title: "Point it at Lendhold", code: [`export LENDHOLD_API=${site}`], after: "Then ask: “Borrow $20 against my NVIDIA bStock”." },
 ];
 
+/** Agents the Skills CLI installs into (from its own agent list). */
+const AGENTS = [
+  "Claude Code", "Codex", "Cursor", "Hermes Agent", "OpenCode", "Gemini CLI", "GitHub Copilot", "Windsurf", "Cline", "Goose",
+  "Amp", "Roo Code", "Kilo Code", "Continue", "Trae", "Qwen Code", "Augment", "Zed", "Junie", "OpenClaw",
+];
+
 const LIMITS = [
   "It never runs a step you didn't confirm.",
   "It stops on a risky preview.",
@@ -88,6 +94,27 @@ export default async function SkillPage() {
               </li>
             ))}
           </ol>
+        </section>
+
+        <section aria-labelledby="agents-title" className="mx-auto max-w-[1224px] px-5 pb-12 md:px-6 md:pb-20">
+          <div className="flex max-w-[860px] flex-col gap-5">
+            <h2 id="agents-title" className="text-[26px] leading-8 tracking-[-0.01em] text-ink md:text-[32px] md:leading-[38px]">
+              Works with your agent
+            </h2>
+            <p className="text-pretty text-base leading-6 text-body">
+              The skill installs into any agent the Skills CLI supports. Your agent also needs to run <code className="font-mono text-[15px] text-ink">baw</code>{" "}
+              in a terminal. Tested end to end on mainnet with Claude Code.
+            </p>
+            <ul className="flex flex-wrap gap-2">
+              {AGENTS.map((a) => (
+                <li key={a} className="rounded-pill border border-line px-4 py-2 text-[15px] leading-5 text-ink">
+                  {a}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[15px] leading-6 text-body">To install into specific agents, name them:</p>
+            <CopyBlock code={`npx skills add ${REPO_URL} --skill lendhold -a claude-code -a codex -a cursor`} />
+          </div>
         </section>
 
         <section aria-labelledby="limits-title" className="mx-auto max-w-[1224px] px-5 pb-16 md:px-6 md:pb-24">

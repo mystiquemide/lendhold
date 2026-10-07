@@ -129,6 +129,8 @@ npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
 export LENDHOLD_API=https://lendhold.midelabs.xyz
 ```
 
+It installs into any agent the [Skills CLI](https://github.com/vercel-labs/skills) supports, including Claude Code, Codex, Cursor, Hermes Agent, OpenCode, Gemini CLI, GitHub Copilot, Windsurf, Cline, Goose and Amp. Pick agents with `-a`, for example `-a claude-code -a codex`. The agent also needs to run `baw` in a terminal. Tested end to end on mainnet with Claude Code.
+
 Then ask: "Borrow $15 against my NVIDIA." The agent stops on a failed preview, a risky preview, or anything the Binance App needs to approve. The operator page at `/agent` runs plans on a server-side Agentic Wallet with a per-run cap. It needs a server with `baw` signed in, so on the hosted app it only reports that the wallet isn't available. Setup and safety rules: [skill/README.md](skill/README.md).
 
 The Wallet Skill rows in Proof were run this way: an AI tool followed [SKILL.md](skill/lendhold/SKILL.md) against the live site, previewed every call with `baw`, and reported each hash back to Lendhold, which checked it on-chain.

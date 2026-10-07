@@ -24,6 +24,16 @@ With the Skills CLI, the same way Binance Skills Hub is installed:
 npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
 ```
 
+This works for any agent the Skills CLI supports: Claude Code, Codex, Cursor, Hermes Agent, OpenCode, Gemini CLI,
+GitHub Copilot, Windsurf, Cline, Goose, Amp, Roo Code, Kilo Code, Continue, Trae, Qwen Code, Augment, Zed, Junie and OpenClaw.
+Choose agents with `-a`, for example:
+
+```bash
+npx skills add https://github.com/mystiquemide/lendhold --skill lendhold -a claude-code -a codex -a cursor
+```
+
+The agent must be able to run `baw` in a terminal. The skill has been tested end to end on mainnet with Claude Code.
+
 Or copy the folder into your tool's skills directory, for example for Claude Code:
 
 ```bash
