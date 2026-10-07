@@ -10,6 +10,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Stock logos come from Binance's CDN. Serving them through /_next/image keeps them on our own domain,
+  // so they still load on phone networks and in-app wallet browsers that block the CDN.
+  images: {
+    remotePatterns: [new URL("https://onchainos.bnbstatic.com/images/**")],
+  },
   allowedDevOrigins: ["*.ngrok-free.dev"],
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];

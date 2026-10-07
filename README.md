@@ -65,6 +65,19 @@ BNB Smart Chain mainnet (chain ID 56). Lending on Lista Moolah at [`0x8F73…5D8
 
 Borrow and repay have run on mainnet from a browser wallet, from the Agentic Wallet, and through the Wallet Skill, which also converted an Ondo holding into its bStock before borrowing. Earlier deposit and withdraw tests from 30 Sep and 5 Oct are on [/proof](https://lendhold.midelabs.xyz/proof).
 
+**Contracts and tokens** (BNB Smart Chain, read on-chain):
+
+| What | Address |
+|---|---|
+| Lista Moolah (lending) | [`0x8F73…5D8C`](https://bscscan.com/address/0x8F73b65B4caAf64FBA2aF91cC5D4a2A1318E5D8C) |
+| NVDAB / USD1 market used for the runs above | `0xaa1b8576…8d8b1`, 75% LLTV, oracle [`0x526D…bDfb`](https://bscscan.com/address/0x526D09c604A17D98cb1f260a7774A239990dbDfb), rate model [`0xFe7d…De7c`](https://bscscan.com/address/0xFe7dAe87Ebb11a7BEB9F534BB23267992d9cDe7c) |
+| NVDAB (bStock, collateral) | [`0x02Fc…7436`](https://bscscan.com/address/0x02Fca66C1D1aFB4E2A7884261eB00F63598a7436) |
+| NVDAon (Ondo, converted first) | [`0xA9eE…6F75`](https://bscscan.com/address/0xA9eE28C80f960B889dFbd1902055218cBa016F75) |
+| TSLAB (bStock, earlier deposit tests) | [`0x5b19…292f`](https://bscscan.com/address/0x5b1910eAaD6450E50f816082Aa078C41F10C292f) |
+| USD1 (borrowed) | [`0x8d0D…8B0d`](https://bscscan.com/address/0x8d0D000Ee44948FC98c9B98A4FA4921476f08B0d) |
+| USDT (paid in and out) | [`0x55d3…7955`](https://bscscan.com/address/0x55d398326f99059fF775485246999027B3197955) |
+| Agentic Wallet used for agent and skill runs | [`0x40F9…550a`](https://bscscan.com/address/0x40F93Eca205086b4ccbF722C871c2815c266550a) |
+
 Swap costs are measured, not assumed. A job quotes a $50 and a $500 round trip on 18 stock tokens every 30 minutes: over 318 runs, bStocks cost a median 0.07% to 0.10%, Ondo 2.19% to 9.64%, and some Ondo tokens had no usable route. Per-stock tables are on [/proof](https://lendhold.midelabs.xyz/proof).
 
 ## How it works

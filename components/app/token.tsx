@@ -1,3 +1,4 @@
+import Image from "next/image";
 export const HEALTH = {
   safe: { label: "Safe", cls: "bg-safe-tint text-safe" },
   watch: { label: "Watch", cls: "bg-watch-tint text-watch" },
@@ -12,6 +13,6 @@ export function TokenIcon({ src, ticker }: { src: string | null; ticker: string 
       </span>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" width={40} height={40} className="size-10 shrink-0 rounded-full bg-canvas" />;
+  // 128px source covers the larger header and confirmation sizes on high-density screens.
+  return <Image src={src} alt="" width={128} height={128} className="size-10 shrink-0 rounded-full bg-canvas" />;
 }
