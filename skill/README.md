@@ -24,15 +24,36 @@ With the Skills CLI, the same way Binance Skills Hub is installed:
 npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
 ```
 
-This works for any agent the Skills CLI supports: Claude Code, Codex, Cursor, Hermes Agent, OpenCode, Gemini CLI,
-GitHub Copilot, Windsurf, Cline, Goose, Amp, Roo Code, Kilo Code, Continue, Trae, Qwen Code, Augment, Zed, Junie and OpenClaw.
-Choose agents with `-a`, for example:
+It installs into any agent the Skills CLI supports. The agent must be able to run `baw` in a terminal.
+
+| Agent | Install flag | Status |
+|---|---|---|
+| Claude Code | `-a claude-code` | Tested on mainnet |
+| Codex | `-a codex` | Supported |
+| Cursor | `-a cursor` | Supported |
+| Hermes Agent | `-a hermes-agent` | Supported |
+| OpenCode | `-a opencode` | Supported |
+| Gemini CLI | `-a gemini-cli` | Supported |
+| GitHub Copilot | `-a github-copilot` | Supported |
+| Windsurf | `-a windsurf` | Supported |
+| Cline | `-a cline` | Supported |
+| Goose | `-a goose` | Supported |
+| Amp | `-a amp` | Supported |
+| Roo Code | `-a roo` | Supported |
+| Kilo Code | `-a kilo` | Supported |
+| Continue | `-a continue` | Supported |
+| Trae | `-a trae` | Supported |
+| Qwen Code | `-a qwen-code` | Supported |
+| Augment | `-a augment` | Supported |
+| Zed | `-a zed` | Supported |
+| Junie | `-a junie` | Supported |
+| OpenClaw | `-a openclaw` | Supported |
+
+Install into several at once by repeating the flag:
 
 ```bash
 npx skills add https://github.com/mystiquemide/lendhold --skill lendhold -a claude-code -a codex -a cursor
 ```
-
-The agent must be able to run `baw` in a terminal. The skill has been tested end to end on mainnet with Claude Code.
 
 Or copy the folder into your tool's skills directory, for example for Claude Code:
 

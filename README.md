@@ -129,7 +129,32 @@ npx skills add https://github.com/mystiquemide/lendhold --skill lendhold
 export LENDHOLD_API=https://lendhold.midelabs.xyz
 ```
 
-It installs into any agent the [Skills CLI](https://github.com/vercel-labs/skills) supports, including Claude Code, Codex, Cursor, Hermes Agent, OpenCode, Gemini CLI, GitHub Copilot, Windsurf, Cline, Goose and Amp. Pick agents with `-a`, for example `-a claude-code -a codex`. The agent also needs to run `baw` in a terminal. Tested end to end on mainnet with Claude Code.
+It installs into any agent the [Skills CLI](https://github.com/vercel-labs/skills) supports. The agent also needs to run `baw` in a terminal.
+
+| Agent | Install flag | Status |
+|---|---|---|
+| Claude Code | `-a claude-code` | Tested on mainnet |
+| Codex | `-a codex` | Supported |
+| Cursor | `-a cursor` | Supported |
+| Hermes Agent | `-a hermes-agent` | Supported |
+| OpenCode | `-a opencode` | Supported |
+| Gemini CLI | `-a gemini-cli` | Supported |
+| GitHub Copilot | `-a github-copilot` | Supported |
+| Windsurf | `-a windsurf` | Supported |
+| Cline | `-a cline` | Supported |
+| Goose | `-a goose` | Supported |
+| Amp | `-a amp` | Supported |
+| Roo Code | `-a roo` | Supported |
+| Kilo Code | `-a kilo` | Supported |
+| Continue | `-a continue` | Supported |
+| Trae | `-a trae` | Supported |
+| Qwen Code | `-a qwen-code` | Supported |
+| Augment | `-a augment` | Supported |
+| Zed | `-a zed` | Supported |
+| Junie | `-a junie` | Supported |
+| OpenClaw | `-a openclaw` | Supported |
+
+Install into several at once by repeating the flag: `npx skills add https://github.com/mystiquemide/lendhold --skill lendhold -a claude-code -a codex`.
 
 Then ask: "Borrow $15 against my NVIDIA." The agent stops on a failed preview, a risky preview, or anything the Binance App needs to approve. The operator page at `/agent` runs plans on a server-side Agentic Wallet with a per-run cap. It needs a server with `baw` signed in, so on the hosted app it only reports that the wallet isn't available. Setup and safety rules: [skill/README.md](skill/README.md).
 
