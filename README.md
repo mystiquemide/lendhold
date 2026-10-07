@@ -31,7 +31,7 @@ Lendhold lets you borrow dollars against your stock tokens instead of selling th
 
 ## Try it in 60 seconds
 
-1. Open [lendhold.midelabs.xyz/app](https://lendhold.midelabs.xyz/app). No stock tokens? [Buy one from the list](https://lendhold.midelabs.xyz/app/buy) (every bStock, with its price and whether Lista lends against it), or [explore a sample wallet](https://lendhold.midelabs.xyz/app?sample=1): real balances and plans, read only, nothing can be signed.
+1. Open [lendhold.midelabs.xyz/app](https://lendhold.midelabs.xyz/app). No stock tokens? [Buy one from the list](https://lendhold.midelabs.xyz/app/buy) (every bStock, with its price and whether Lista lends against it), or [explore a sample view](https://lendhold.midelabs.xyz/app?sample=1): the stock tokens held by Lista Lending's contract, with real prices and plans, read only, nothing can be signed.
 2. Confirm you're eligible to hold tokenized stocks, then connect a wallet on BNB Chain. Tokenized stocks aren't available to US persons or in other restricted regions.
 3. Your stock tokens are listed with their value. Tap Borrow on a bStock such as NVDAB or TSLAB.
 4. See the safe amount, the most you can borrow, Lista's minimum loan and the price where risk starts. Lendhold picks the Lista market with the most free liquidity; you can switch to another one (USD1, USDC, U) by rate. Within 4 hours of a US market close, it tells you how far the safe amount will drop.
@@ -100,6 +100,15 @@ flowchart LR
 ```
 
 Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Built on
+
+| | | |
+|---|---|---|
+| <img src="public/logos/bnb-chain.svg" alt="BNB Chain" height="28"> | **BNB Chain** | Every transaction settles here |
+| <img src="public/logos/lista-dao.svg" alt="Lista DAO" height="28"> | **Lista DAO** | Lends the money |
+| <img src="public/logos/binance-wallet.svg" alt="Binance Wallet" height="28"> | **Binance Wallet** | Signs every step, in the app or as an Agentic Wallet. Any BNB Chain browser wallet works too. |
+| <img src="public/logos/ondo.svg" alt="Ondo" height="28"> | **Ondo** | Ondo tokens convert to bStocks |
 
 ## Binance Web3 API usage
 

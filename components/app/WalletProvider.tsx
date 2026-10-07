@@ -19,8 +19,9 @@ const ELIGIBLE_KEY = "lendhold:eligible";
  */
 const VIEW_AS_KEY = "lendhold:view-as";
 const VIEW_AS_ENABLED = process.env.NODE_ENV === "development";
+/** Lista Lending's Moolah contract: a public address that holds every bStock deposited as collateral. */
 export const SAMPLE_WALLET = getAddress(
-  process.env.NEXT_PUBLIC_SAMPLE_WALLET?.trim() || "0xAbf039f2DC31084F5E0713708C96068126a043e9",
+  process.env.NEXT_PUBLIC_SAMPLE_WALLET?.trim() || "0x8F73b65B4caAf64FBA2aF91cC5D4a2A1318E5D8C",
 );
 
 function readViewAs(): Address | null {
