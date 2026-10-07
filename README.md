@@ -4,7 +4,9 @@ Borrow against your tokenized stocks on BNB Chain. Keep them.
 
 [![CI](https://github.com/mystiquemide/lendhold/actions/workflows/ci.yml/badge.svg)](https://github.com/mystiquemide/lendhold/actions/workflows/ci.yml)
 
-Live app: [lendhold.midelabs.xyz](https://lendhold.midelabs.xyz) · Demo video: pending · [Run history](https://lendhold.midelabs.xyz/proof)
+Live app: [lendhold.midelabs.xyz](https://lendhold.midelabs.xyz) · [Demo video (3:34)](https://youtu.be/Arp1uqGkR1E) · [Run history](https://lendhold.midelabs.xyz/proof)
+
+[![Watch the Lendhold demo (3:34)](docs/media/demo-thumbnail.jpg)](https://youtu.be/Arp1uqGkR1E)
 
 ## The problem
 
